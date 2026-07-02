@@ -167,8 +167,6 @@ public class MusicTrackCompleterPlugin extends Plugin
             int areaId = readDBInt(dbrow, DBTableID.Music.COL_AREA);
             boolean hidden = readDBBoolean(dbrow, DBTableID.Music.COL_HIDDEN);
 
-            log.debug("Track: {} areaId={}", displayName, areaId);
-
             tracks.add(new TrackData(dbrow, displayName, unlockHint != null ? unlockHint : "", areaId, hidden));
         }
 

@@ -125,7 +125,7 @@ class MusicTrackCompleterPanel extends PluginPanel
 
     void rebuild()
     {
-        clientThread.invokeLater(() ->
+        SwingUtilities.invokeLater(() ->
         {
             List<TrackData> tracks = plugin.getVisibleTracks();
             Map<Integer, Boolean> unlockedState = plugin.getUnlockedState();
