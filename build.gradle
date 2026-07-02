@@ -1,0 +1,38 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenLocal()
+    maven {
+        url = 'https://repo.runelite.net'
+        content { includeGroupByRegex("net\\.runelite.*") }
+    }
+    mavenCentral()
+}
+
+def runeLiteVersion = 'latest.release'
+
+dependencies {
+    compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
+    compileOnly 'com.google.inject:guice:4.1.0:no_aop'
+    compileOnly 'com.google.guava:guava:23.2-jre'
+    compileOnly 'com.google.code.gson:gson:2.8.5'
+    compileOnly 'org.slf4j:slf4j-api:1.7.25'
+    compileOnly 'org.apache.commons:commons-text:1.2'
+
+    testImplementation 'junit:junit:4.12'
+    testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
+    testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release.set(11)
+}
+
+task printCompileClasspath {
+    doLast {
+        sourceSets.main.compileClasspath.each { println it }
+    }
+}
