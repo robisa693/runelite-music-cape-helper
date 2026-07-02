@@ -14,7 +14,7 @@ A RuneLite plugin that helps you complete the music log and unlock the **music c
 
 ## Why?
 
-The in-game music player only lists tracks you've already unlocked. This plugin shows you **everything** — including tracks you're missing and where to find them — so you can systematically complete the music log and get the music cape.
+The in-game music player already shows locked tracks, but it's tedious to scroll through every area and read each tooltip one by one. This plugin makes it easier to read by listing all unlock hints at once, grouped by area, with direct links to the OSRS Wiki so you can speed through the music log and get the music cape.
 
 ## Usage
 
