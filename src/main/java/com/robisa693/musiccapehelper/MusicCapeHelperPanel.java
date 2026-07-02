@@ -42,6 +42,7 @@ class MusicCapeHelperPanel extends PluginPanel
     private static final Color COLOR_LOCKED = new Color(220, 90, 90);
     private static final Color COLOR_HINT = new Color(180, 180, 180);
     private static final Color COLOR_HEADER = Color.WHITE;
+    private static final Color COLOR_HOVER = new Color(50, 50, 60);
 
     private final MusicCapeHelperPlugin plugin;
     private final MusicCapeHelperConfig config;
@@ -107,7 +108,16 @@ class MusicCapeHelperPanel extends PluginPanel
         add(missingOnlyCheck);
         add(Box.createRigidArea(new Dimension(0, 8)));
 
-        trackListPanel = new JPanel();
+        trackListPanel = new JPanel()
+        {
+            @Override
+            public Dimension getMaximumSize()
+            {
+                Dimension max = super.getMaximumSize();
+                max.width = Short.MAX_VALUE;
+                return max;
+            }
+        };
         trackListPanel.setLayout(new BoxLayout(trackListPanel, BoxLayout.Y_AXIS));
         trackListPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -173,17 +183,28 @@ class MusicCapeHelperPanel extends PluginPanel
 
     private JPanel createTrackRow(TrackData track, Map<Integer, Boolean> unlockedState)
     {
-        JPanel row = new JPanel();
+        JPanel row = new JPanel()
+        {
+            @Override
+            public Dimension getMaximumSize()
+            {
+                Dimension max = super.getMaximumSize();
+                max.width = Short.MAX_VALUE;
+                return max;
+            }
+        };
         row.setLayout(new BoxLayout(row, BoxLayout.Y_AXIS));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
         row.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
+        row.setOpaque(true);
+        row.setBackground(null);
 
         Boolean unlocked = unlockedState.get(track.dbRow);
         boolean isUnlocked = unlocked != null && unlocked;
 
         JLabel nameLabel = new JLabel(track.displayName);
         nameLabel.setForeground(isUnlocked ? COLOR_UNLOCKED : COLOR_LOCKED);
-        nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 12f));
+        nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 13f));
         nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         row.add(nameLabel);
 
@@ -191,24 +212,18 @@ class MusicCapeHelperPanel extends PluginPanel
         {
             JLabel hintLabel = new JLabel(track.unlockHint);
             hintLabel.setForeground(COLOR_HINT);
-            hintLabel.setFont(hintLabel.getFont().deriveFont(10f));
+            hintLabel.setFont(hintLabel.getFont().deriveFont(11f));
             hintLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             row.add(hintLabel);
         }
 
         JLabel areaLabel = new JLabel(AreaResolver.getAreaName(track.areaId));
         areaLabel.setForeground(new Color(120, 120, 120));
-        areaLabel.setFont(areaLabel.getFont().deriveFont(9f));
+        areaLabel.setFont(areaLabel.getFont().deriveFont(10f));
         areaLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         row.add(areaLabel);
 
         row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        row.setToolTipText("<html><body style='width:250px'>"
-            + "<b>" + track.displayName + "</b><br>"
-            + "<i>" + AreaResolver.getAreaName(track.areaId) + "</i><br>"
-            + (!track.unlockHint.isEmpty() ? track.unlockHint + "<br>" : "")
-            + "<br><span style='color:#aaaaaa'>Click to open OSRS Wiki</span>"
-            + "</body></html>");
 
         row.addMouseListener(new MouseAdapter()
         {
@@ -216,6 +231,20 @@ class MusicCapeHelperPanel extends PluginPanel
             public void mouseClicked(MouseEvent e)
             {
                 resolveAndBrowse(track.displayName);
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e)
+            {
+                row.setBackground(COLOR_HOVER);
+                row.repaint();
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e)
+            {
+                row.setBackground(null);
+                row.repaint();
             }
         });
 
