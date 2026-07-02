@@ -7,6 +7,9 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -171,7 +174,6 @@ class MusicTrackCompleterPanel extends PluginPanel
         row.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
         row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        String wikiUrl = wikiUrlForTrack(track.displayName);
         row.setToolTipText("<html><body style='width:250px'>"
             + "<b>" + track.displayName + "</b><br>"
             + "<i>" + AreaResolver.getAreaName(track.areaId) + "</i><br>"
@@ -184,7 +186,7 @@ class MusicTrackCompleterPanel extends PluginPanel
             @Override
             public void mouseClicked(MouseEvent e)
             {
-                LinkBrowser.browse(wikiUrl);
+                resolveAndBrowse(track.displayName);
             }
         });
 
@@ -215,8 +217,43 @@ class MusicTrackCompleterPanel extends PluginPanel
         return row;
     }
 
+    private static void resolveAndBrowse(String trackName)
+    {
+        new Thread(() ->
+        {
+            String url = wikiUrlForTrack(trackName);
+            try
+            {
+                String apiEncoded = URLEncoder.encode(trackName, StandardCharsets.UTF_8.name());
+                String apiUrl = "https://oldschool.runescape.wiki/api.php?action=query&titles="
+                    + apiEncoded + "_(music_track)&format=json&redirects=1";
+
+                java.net.URLConnection conn = new java.net.URL(apiUrl).openConnection();
+                conn.setConnectTimeout(3000);
+                conn.setReadTimeout(3000);
+                conn.setRequestProperty("User-Agent", "MusicTrackCompleter/1.0");
+
+                try (InputStream in = conn.getInputStream())
+                {
+                    String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                    if (!json.contains("\"missing\""))
+                    {
+                        url = wikiUrlForTrack(trackName) + "_(music_track)";
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                // fallback to plain URL
+            }
+            LinkBrowser.browse(url);
+        }).start();
+    }
+
     private static String wikiUrlForTrack(String name)
     {
-        return "https://oldschool.runescape.wiki/w/" + name.replace(" ", "_");
+        String encoded = URLEncoder.encode(name, StandardCharsets.UTF_8)
+            .replace("+", "_");
+        return "https://oldschool.runescape.wiki/w/" + encoded;
     }
 }
