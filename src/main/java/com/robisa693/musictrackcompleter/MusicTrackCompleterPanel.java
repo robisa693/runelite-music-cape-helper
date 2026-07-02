@@ -206,25 +206,22 @@ class MusicTrackCompleterPanel extends PluginPanel
         areaLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         row.add(areaLabel);
 
-        if (config.wikiLookup())
-        {
-            row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            row.setToolTipText("<html><body style='width:250px'>"
-                + "<b>" + track.displayName + "</b><br>"
-                + "<i>" + AreaResolver.getAreaName(track.areaId) + "</i><br>"
-                + (!track.unlockHint.isEmpty() ? track.unlockHint + "<br>" : "")
-                + "<br><span style='color:#aaaaaa'>Click to open OSRS Wiki</span>"
-                + "</body></html>");
+        row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        row.setToolTipText("<html><body style='width:250px'>"
+            + "<b>" + track.displayName + "</b><br>"
+            + "<i>" + AreaResolver.getAreaName(track.areaId) + "</i><br>"
+            + (!track.unlockHint.isEmpty() ? track.unlockHint + "<br>" : "")
+            + "<br><span style='color:#aaaaaa'>Click to open OSRS Wiki</span>"
+            + "</body></html>");
 
-            row.addMouseListener(new MouseAdapter()
+        row.addMouseListener(new MouseAdapter()
+        {
+            @Override
+            public void mouseClicked(MouseEvent e)
             {
-                @Override
-                public void mouseClicked(MouseEvent e)
-                {
-                    resolveAndBrowse(track.displayName);
-                }
-            });
-        }
+                resolveAndBrowse(track.displayName);
+            }
+        });
 
         return row;
     }
@@ -232,6 +229,13 @@ class MusicTrackCompleterPanel extends PluginPanel
     private void resolveAndBrowse(String trackName)
     {
         String plainUrl = wikiUrlForTrack(trackName);
+
+        if (!config.wikiLookup())
+        {
+            browseUrl(plainUrl);
+            return;
+        }
+
         String apiEncoded = URLEncoder.encode(trackName, StandardCharsets.UTF_8);
         String apiUrl = "https://oldschool.runescape.wiki/api.php?action=query&titles="
             + apiEncoded + "_(music_track)&format=json&redirects=1";

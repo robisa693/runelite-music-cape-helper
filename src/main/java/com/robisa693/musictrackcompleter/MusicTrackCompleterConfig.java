@@ -55,6 +55,6 @@ public interface MusicTrackCompleterConfig extends Config
     )
     default boolean wikiLookup()
     {
-        return false;
+        return true;
     }
 }
