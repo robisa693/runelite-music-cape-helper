@@ -2,10 +2,11 @@ package com.robisa693.musictrackcompleter;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -17,7 +18,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
-import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -25,6 +25,7 @@ import net.runelite.api.Client;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.util.LinkBrowser;
 
 class MusicTrackCompleterPanel extends PluginPanel
 {
@@ -168,6 +169,24 @@ class MusicTrackCompleterPanel extends PluginPanel
         row.setLayout(new BoxLayout(row, BoxLayout.Y_AXIS));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
         row.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
+        row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        String wikiUrl = wikiUrlForTrack(track.displayName);
+        row.setToolTipText("<html><body style='width:250px'>"
+            + "<b>" + track.displayName + "</b><br>"
+            + "<i>" + AreaResolver.getAreaName(track.areaId) + "</i><br>"
+            + (!track.unlockHint.isEmpty() ? track.unlockHint + "<br>" : "")
+            + "<br><span style='color:#aaaaaa'>Click to open OSRS Wiki</span>"
+            + "</body></html>");
+
+        row.addMouseListener(new MouseAdapter()
+        {
+            @Override
+            public void mouseClicked(MouseEvent e)
+            {
+                LinkBrowser.browse(wikiUrl);
+            }
+        });
 
         Boolean unlocked = unlockedState.get(track.dbRow);
         boolean isUnlocked = unlocked != null && unlocked;
@@ -194,5 +213,10 @@ class MusicTrackCompleterPanel extends PluginPanel
         row.add(areaLabel);
 
         return row;
+    }
+
+    private static String wikiUrlForTrack(String name)
+    {
+        return "https://oldschool.runescape.wiki/w/" + name.replace(" ", "_");
     }
 }
