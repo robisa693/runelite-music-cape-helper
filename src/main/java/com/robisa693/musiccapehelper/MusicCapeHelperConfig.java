@@ -8,6 +8,12 @@ import net.runelite.client.config.ConfigSection;
 @ConfigGroup("musiccapehelper")
 public interface MusicCapeHelperConfig extends Config
 {
+    enum ClickMode
+    {
+        WIKI,
+        MAP
+    }
+
     @ConfigSection(
         name = "Display",
         description = "Display options",
@@ -40,21 +46,21 @@ public interface MusicCapeHelperConfig extends Config
     }
 
     @ConfigSection(
-        name = "Wiki Integration",
-        description = "OSRS Wiki lookup options",
+        name = "Click Behaviour",
+        description = "What happens when you click a track",
         position = 10
     )
-    String wikiSection = "wiki";
+    String clickSection = "click";
 
     @ConfigItem(
-        keyName = "wikiLookup",
-        name = "Wiki lookup on click",
-        description = "When enabled, clicking a track opens its OSRS Wiki page.<br>This sends a lookup request to oldschool.runescape.wiki.",
+        keyName = "clickMode",
+        name = "Click mode",
+        description = "Wiki: open OSRS Wiki page. Map: open in-game world map at the track's location.",
         position = 11,
-        section = wikiSection
+        section = clickSection
     )
-    default boolean wikiLookup()
+    default ClickMode clickMode()
     {
-        return true;
+        return ClickMode.WIKI;
     }
 }
