@@ -31,6 +31,7 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 import net.runelite.client.ui.overlay.worldmap.WorldMapPointManager;
 import net.runelite.client.util.ImageUtil;
 
@@ -67,6 +68,9 @@ public class MusicCapeHelperPlugin extends Plugin
     @Inject
     private WorldMapPointManager worldMapPointManager;
 
+    @Inject
+    private InfoBoxManager infoBoxManager;
+
     private MusicCapeHelperConfig config;
     private MusicCapeHelperPanel panel;
     private MapNavigator mapNavigator;
@@ -80,7 +84,7 @@ public class MusicCapeHelperPlugin extends Plugin
     {
         config = getConfig(configManager);
         loadUnlockedState();
-        mapNavigator = new MapNavigator(client, clientThread, worldMapPointManager, gson);
+        mapNavigator = new MapNavigator(this, client, clientThread, worldMapPointManager, infoBoxManager, gson);
         panel = new MusicCapeHelperPanel(this, config, configManager, okHttpClient, client, clientThread, mapNavigator);
         navButton = NavigationButton.builder()
             .tooltip("Music Cape Helper")

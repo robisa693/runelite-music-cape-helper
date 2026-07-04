@@ -24,6 +24,9 @@ import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.worldmap.WorldMap;
 import net.runelite.client.callback.ClientThread;
+import net.runelite.client.plugins.Plugin;
+import net.runelite.client.ui.overlay.infobox.InfoBox;
+import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 import net.runelite.client.ui.overlay.worldmap.WorldMapPoint;
 import net.runelite.client.ui.overlay.worldmap.WorldMapPointManager;
 
@@ -32,22 +35,34 @@ class MapNavigator
     private static final Logger log = LoggerFactory.getLogger(MapNavigator.class);
     private static final Type MAP_TYPE = new TypeToken<Map<String, List<MapLocation>>>() {}.getType();
 
+    // World map surface coordinates stop below this y; anything at or above it is an
+    // underground / instanced region that the in-game world map cannot display.
+    private static final int UNDERGROUND_Y = 6400;
+
+    private final Plugin plugin;
     private final Client client;
     private final ClientThread clientThread;
     private final WorldMapPointManager worldMapPointManager;
+    private final InfoBoxManager infoBoxManager;
     private final Gson gson;
 
     private Map<String, List<MapLocation>> coordsMap = new HashMap<>();
     private WorldMapPoint activeMapPoint;
     private WorldPoint pendingTarget;
     private BufferedImage mapIcon;
-    private Timer blinkTimer;
 
-    MapNavigator(Client client, ClientThread clientThread, WorldMapPointManager worldMapPointManager, Gson gson)
+    private InfoBox openMapInfoBox;
+    private Timer flashTimer;
+    private int flashCount;
+    private volatile boolean flashOn;
+
+    MapNavigator(Plugin plugin, Client client, ClientThread clientThread, WorldMapPointManager worldMapPointManager, InfoBoxManager infoBoxManager, Gson gson)
     {
+        this.plugin = plugin;
         this.client = client;
         this.clientThread = clientThread;
         this.worldMapPointManager = worldMapPointManager;
+        this.infoBoxManager = infoBoxManager;
         this.gson = gson;
         this.mapIcon = createMapIcon();
         loadCoordinates();
@@ -86,7 +101,7 @@ class MapNavigator
         List<MapLocation> locs = getLocations(trackName);
         if (locs.isEmpty())
         {
-            log.info("navigateTo: no coords for '{}', falling back", trackName);
+            log.debug("navigateTo: no coords for '{}', falling back", trackName);
             fallback.run();
             return;
         }
@@ -95,13 +110,24 @@ class MapNavigator
         List<Number> c = first.center;
         if (c == null || c.size() < 3)
         {
-            log.info("navigateTo: no center for '{}', falling back", trackName);
+            log.debug("navigateTo: no center for '{}', falling back", trackName);
             fallback.run();
             return;
         }
 
         WorldPoint wp = new WorldPoint(c.get(0).intValue(), c.get(1).intValue(), c.get(2).intValue());
         log.debug("navigateTo: {} -> {}", trackName, wp);
+
+        if (wp.getY() >= UNDERGROUND_Y)
+        {
+            // The world map surface cannot render underground / instanced coordinates,
+            // so a marker there would never show. Send the user to the wiki instead.
+            log.debug("navigateTo: {} is underground ({}), falling back to wiki", trackName, wp);
+            clientThread.invoke(() -> client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
+                "Music Cape: " + trackName + " is underground and can't be shown on the world map - opening the wiki.", null));
+            fallback.run();
+            return;
+        }
 
         clientThread.invoke(() ->
         {
@@ -115,28 +141,28 @@ class MapNavigator
             }
 
             addMapPoint(wp, first.name);
-            startBlinking();
 
             if (isWorldMapOpen())
             {
                 // Map is already open: center it now. WORLDMAP_LOADMAP will not fire
                 // again for a region that is already loaded, so we cannot rely on onMapLoaded().
                 pendingTarget = null;
+                removeOpenMapInfoBox();
                 centerMap(wp);
             }
             else
             {
-                // Map is closed: remember the target and center it once the user opens the
-                // map (WORLDMAP_LOADMAP -> onMapLoaded fires when the map first loads).
+                // Map is closed: remember the target and flash an indicator until the user
+                // opens the map (WORLDMAP_LOADMAP -> onMapLoaded fires when it first loads).
                 pendingTarget = wp;
-                client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
-                    "Music Cape: track marked. Open the world map (F9) to jump to it.", null);
+                showOpenMapIndicator(first.name != null ? first.name : trackName);
             }
         });
     }
 
     void onMapLoaded()
     {
+        removeOpenMapInfoBox();
         if (pendingTarget == null)
         {
             return;
@@ -193,58 +219,85 @@ class MapNavigator
         }
     }
 
-    private int blinkCount;
-    private boolean blinkVisible;
+    // ------------------------------------------------------------------
+    // "Open the world map" indicator: a flashing InfoBox shown while the
+    // map is closed, so the user knows there is a marked location waiting.
+    // ------------------------------------------------------------------
 
-    private void startBlinking()
+    private void showOpenMapIndicator(String name)
     {
-        stopBlinking();
-        blinkCount = 0;
-        blinkVisible = true;
-        blinkTimer = new Timer(500, (ActionEvent e) ->
+        removeOpenMapInfoBox();
+
+        flashOn = true;
+        openMapInfoBox = new InfoBox(mapIcon, plugin)
         {
-            blinkCount++;
-            if (blinkCount >= 12 || activeMapPoint == null)
+            @Override
+            public String getText()
             {
-                stopBlinking();
-                return;
+                return "F9";
             }
 
-            blinkVisible = !blinkVisible;
-            clientThread.invoke(() ->
+            @Override
+            public Color getTextColor()
             {
-                if (blinkVisible)
-                {
-                    worldMapPointManager.add(activeMapPoint);
-                }
-                else
-                {
-                    worldMapPointManager.remove(activeMapPoint);
-                }
-            });
-        });
-        blinkTimer.setRepeats(true);
-        blinkTimer.setInitialDelay(500);
-        blinkTimer.start();
+                return Color.YELLOW;
+            }
+
+            @Override
+            public boolean render()
+            {
+                return flashOn;
+            }
+        };
+        openMapInfoBox.setTooltip("Open the world map (F9) to jump to " + name);
+        infoBoxManager.addInfoBox(openMapInfoBox);
+        startFlashing();
+
+        client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
+            "Music Cape: press F9 to open the world map and jump to " + name + ".", null);
     }
 
-    private void stopBlinking()
+    private void removeOpenMapInfoBox()
     {
-        if (blinkTimer != null)
+        stopFlashing();
+        if (openMapInfoBox != null)
         {
-            blinkTimer.stop();
-            blinkTimer = null;
+            infoBoxManager.removeInfoBox(openMapInfoBox);
+            openMapInfoBox = null;
         }
-        blinkVisible = true;
-        if (activeMapPoint != null)
+    }
+
+    private void startFlashing()
+    {
+        stopFlashing();
+        flashCount = 0;
+        flashTimer = new Timer(400, (ActionEvent e) ->
         {
-            clientThread.invoke(() -> worldMapPointManager.add(activeMapPoint));
+            flashOn = !flashOn;
+            flashCount++;
+            if (flashCount >= 30)
+            {
+                // After ~12s stop flashing but leave the box visible.
+                flashOn = true;
+                stopFlashing();
+            }
+        });
+        flashTimer.setRepeats(true);
+        flashTimer.start();
+    }
+
+    private void stopFlashing()
+    {
+        if (flashTimer != null)
+        {
+            flashTimer.stop();
+            flashTimer = null;
         }
     }
 
     void clear()
     {
-        stopBlinking();
+        removeOpenMapInfoBox();
         pendingTarget = null;
         clientThread.invoke(() ->
         {
