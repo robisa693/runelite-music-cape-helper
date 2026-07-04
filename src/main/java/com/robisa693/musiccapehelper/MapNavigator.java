@@ -56,9 +56,10 @@ class MapNavigator
 
     // Active navigation target: written on the client thread, read by overlays
     // (which also render on the client thread) and the panel (EDT) - keep the
-    // list reference immutable and volatile.
+    // list references immutable and volatile.
     private volatile String activeTrack;
     private volatile List<ActiveLocation> activeLocations = Collections.emptyList();
+    private volatile List<DisplayArea> mapAreas = Collections.emptyList();
     private WorldPoint hintArrowPoint;
 
     private InfoBox openMapInfoBox;
@@ -116,6 +117,11 @@ class MapNavigator
         return activeLocations;
     }
 
+    List<DisplayArea> getMapAreas()
+    {
+        return mapAreas;
+    }
+
     BufferedImage getMapIcon()
     {
         return mapIcon;
@@ -151,34 +157,62 @@ class MapNavigator
             activeTrack = trackName;
             activeLocations = Collections.unmodifiableList(parsed);
 
-            List<ActiveLocation> surface = new ArrayList<>();
+            // Build the world map markers. Surface locations are marked directly.
+            // Underground locations are projected to the surface spot directly above
+            // them (dungeons are mapped exactly 6400 tiles north of the ground they
+            // sit under), which is where the player needs to go to find the entrance.
+            List<ActiveLocation> markers = new ArrayList<>();
+            List<DisplayArea> areas = new ArrayList<>();
+            boolean hasSurface = false;
+            boolean overheadUsed = false;
+
             for (ActiveLocation a : parsed)
             {
                 if (isSurface(a.point))
                 {
-                    surface.add(a);
+                    hasSurface = true;
+                    markers.add(a);
+                    addMapPoint(a.point, a.name);
+                    addArea(areas, a.polygon, 0);
+                    continue;
+                }
+
+                if (a.point.getY() >= UNDERGROUND_Y)
+                {
+                    WorldPoint overhead = new WorldPoint(a.point.getX(), a.point.getY() - UNDERGROUND_Y, 0);
+                    if (isSurface(overhead))
+                    {
+                        overheadUsed = true;
+                        String label = a.name + " (underground - entrance nearby)";
+                        markers.add(new ActiveLocation(label, overhead, null));
+                        addMapPoint(overhead, label);
+                        addArea(areas, a.polygon, -UNDERGROUND_Y);
+                    }
                 }
             }
 
-            for (ActiveLocation a : surface)
-            {
-                addMapPoint(a.point, a.name);
-            }
+            mapAreas = Collections.unmodifiableList(areas);
 
-            if (surface.isEmpty())
+            if (markers.isEmpty())
             {
-                // Every location is underground / instanced: the world map cannot render
-                // those regions (WorldMapOverlay drops any point not on the surface), so
-                // open the wiki to show where to travel. The hint arrow and the in-scene
+                // Nothing the world map can show (instanced area with no surface
+                // correspondence): open the wiki instead. The hint arrow and in-scene
                 // highlight still guide the player once they are near the spot.
                 client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
-                    "Music Cape: " + trackName + " is underground and can't be shown on the world map"
+                    "Music Cape: " + trackName + " is in an area the world map can't show"
                         + " - opening the wiki. The spot will be highlighted in-game when you're nearby.", null);
                 fallback.run();
                 return;
             }
 
-            WorldPoint primary = nearestTo(playerLocation(), surface).point;
+            if (!hasSurface && overheadUsed)
+            {
+                client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
+                    "Music Cape: " + trackName + " is underground - the map marks the dungeon area on"
+                        + " the surface above it. Head there and find the entrance.", null);
+            }
+
+            WorldPoint primary = nearestTo(playerLocation(), markers).point;
 
             if (isWorldMapOpen())
             {
@@ -195,6 +229,32 @@ class MapNavigator
                 showOpenMapIndicator(trackName);
             }
         });
+    }
+
+    /**
+     * Converts a scraped wiki polygon into world coordinates for the map area
+     * overlay, shifting it by {@code dy} (used to project an underground dungeon
+     * outline onto the surface directly above it).
+     */
+    private void addArea(List<DisplayArea> areas, List<List<Number>> polygon, int dy)
+    {
+        if (polygon == null || polygon.size() < 3)
+        {
+            return;
+        }
+        int[] xs = new int[polygon.size()];
+        int[] ys = new int[polygon.size()];
+        for (int i = 0; i < polygon.size(); i++)
+        {
+            List<Number> vertex = polygon.get(i);
+            if (vertex == null || vertex.size() < 2)
+            {
+                return;
+            }
+            xs[i] = vertex.get(0).intValue();
+            ys[i] = vertex.get(1).intValue() + dy;
+        }
+        areas.add(new DisplayArea(xs, ys));
     }
 
     /**
@@ -431,6 +491,7 @@ class MapNavigator
         pendingTarget = null;
         activeTrack = null;
         activeLocations = Collections.emptyList();
+        mapAreas = Collections.emptyList();
         removeMapPoints();
         clearOwnHintArrow();
     }
@@ -472,5 +533,21 @@ class MapNavigator
         String name;
         List<Number> center;
         List<List<Number>> polygon;
+    }
+
+    /**
+     * A polygon in world coordinates, ready to be drawn on the world map
+     * (underground outlines are already projected onto the surface).
+     */
+    static class DisplayArea
+    {
+        final int[] xs;
+        final int[] ys;
+
+        DisplayArea(int[] xs, int[] ys)
+        {
+            this.xs = xs;
+            this.ys = ys;
+        }
     }
 }

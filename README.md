@@ -15,7 +15,8 @@ A RuneLite plugin that helps you complete the music log and unlock the **music c
   - The **world map** jumps to the spot and shows the unlock **area highlighted** (not just a dot), for every known location of the track
   - If the map is closed, a flashing **F9 infobox** reminds you to open it
   - When you get near the spot, the tile is **highlighted on the ground** with the track name, and a **hint arrow** points to it — this works in **dungeons and caves** too, where the world map can't reach
-  - Underground tracks open the wiki so you know which cave/dungeon to travel to; the in-game highlight takes over once you're inside
+  - **Underground tracks** (e.g. Sarachnis in Forthos Dungeon) mark the **surface area directly above the dungeon** on the world map, with its outline projected onto the ground above — head there, find the entrance, and the in-game highlight takes over once you're inside
+  - Instanced areas the map can't represent at all open the wiki instead
 - **✕ button** to clear the marker, highlights and hint arrow
 
 ## Why?

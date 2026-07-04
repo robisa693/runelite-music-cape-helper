@@ -7,7 +7,6 @@ import java.awt.Graphics2D;
 import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.Shape;
-import java.util.List;
 import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.api.gameval.InterfaceID;
@@ -63,29 +62,13 @@ class MusicMapAreaOverlay extends Overlay
         Color base = config.highlightColor();
         Color fill = new Color(base.getRed(), base.getGreen(), base.getBlue(), 50);
 
-        for (MapNavigator.ActiveLocation loc : mapNavigator.getActiveLocations())
+        for (MapNavigator.DisplayArea area : mapNavigator.getMapAreas())
         {
-            if (loc.polygon == null || loc.polygon.size() < 3 || !mapNavigator.isSurface(loc.point))
-            {
-                continue;
-            }
-
             Polygon poly = new Polygon();
-            boolean valid = true;
-            for (List<Number> vertex : loc.polygon)
+            for (int i = 0; i < area.xs.length; i++)
             {
-                if (vertex == null || vertex.size() < 2)
-                {
-                    valid = false;
-                    break;
-                }
-                java.awt.Point p = worldToMapPixel(worldMap, bounds, vertex.get(0).intValue(), vertex.get(1).intValue());
+                java.awt.Point p = worldToMapPixel(worldMap, bounds, area.xs[i], area.ys[i]);
                 poly.addPoint(p.x, p.y);
-            }
-
-            if (!valid || poly.npoints < 3)
-            {
-                continue;
             }
 
             graphics.setColor(fill);
