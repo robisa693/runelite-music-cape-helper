@@ -39,6 +39,7 @@ def get_category_members(category, limit=500):
             "list": "categorymembers",
             "cmtitle": category,
             "cmlimit": min(limit, 500),
+            "cmtype": "page",  # exclude subcategories/files that also live under this category
         }
         if cmcontinue:
             params["cmcontinue"] = cmcontinue
@@ -99,15 +100,47 @@ def find_balanced_template_blocks(wikitext, name):
         blocks.append(wikitext[start:end])
     return blocks
 
+def split_top_level(content, sep="|"):
+    """Split on sep, but only at brace-depth 0, so nested templates like
+    {{mainonly|yes}} inside a parameter value aren't torn apart.
+    """
+    parts = []
+    depth = 0
+    current = []
+    for ch in content:
+        if ch == "{":
+            depth += 1
+            current.append(ch)
+        elif ch == "}":
+            depth -= 1
+            current.append(ch)
+        elif ch == sep and depth == 0:
+            parts.append("".join(current))
+            current = []
+        else:
+            current.append(ch)
+    parts.append("".join(current))
+    return parts
+
+def clean_param_value(v):
+    """Unwrap simple single-argument templates like {{mainonly|yes}} -> "yes"
+    so downstream naming/display logic doesn't leak raw wikitext.
+    """
+    v = v.strip()
+    m = re.match(r'^\{\{[^|{}]+\|([^{}]+)\}\}$', v)
+    if m:
+        return m.group(1).strip()
+    return v
+
 def parse_inline_map_template(content):
     content = content.strip()
-    parts = [p.strip() for p in content.split("|")]
+    parts = [p.strip() for p in split_top_level(content)]
     coords = []
     params = {}
     for part in parts:
         if "=" in part:
             k, v = part.split("=", 1)
-            params[k.strip()] = v.strip()
+            params[k.strip()] = clean_param_value(v)
         else:
             pair = parse_coord_pair(part)
             if pair:
