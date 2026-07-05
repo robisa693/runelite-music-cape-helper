@@ -467,14 +467,11 @@ class MapNavigator
 
     boolean isSurface(WorldPoint wp)
     {
-        WorldMap wm = client.getWorldMap();
-        if (wm != null && wm.getWorldMapData() != null)
-        {
-            // Exact gate used by WorldMapOverlay when deciding whether a point can be drawn.
-            return wm.getWorldMapData().surfaceContainsPosition(wp.getX(), wp.getY());
-        }
-        // World map never opened this session, so its data is not loaded yet: approximate
-        // with the underground coordinate band (surface coordinates stay below y=6400).
+        // Classify by the coordinate band only (surface stays below y=6400, matching
+        // how track_coords.json encodes locations). Asking the world map widget via
+        // WorldMapData.surfaceContainsPosition is wrong here: it reflects whichever
+        // map area is currently loaded, so with the player underground it rejects
+        // ordinary surface coordinates and every track fell back to the wiki.
         return wp.getY() < UNDERGROUND_Y;
     }
 
