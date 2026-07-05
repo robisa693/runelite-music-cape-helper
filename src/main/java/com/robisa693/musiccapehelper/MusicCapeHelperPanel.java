@@ -348,7 +348,7 @@ class MusicCapeHelperPanel extends PluginPanel
             {
                 if (clickMode == ClickMode.MAP)
                 {
-                    mapNavigator.navigateTo(track.displayName, () -> resolveAndBrowse(track.displayName));
+                    mapNavigator.navigateTo(track.displayName, track.unlockHint, () -> resolveAndBrowse(track.displayName));
                 }
                 else
                 {

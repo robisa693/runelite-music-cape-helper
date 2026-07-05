@@ -111,11 +111,6 @@
     ],
     "note": "Last Man Standing lobby, Ferox Enclave"
   },
-  "37": {
-    "name": "Tutorial Island",
-    "entrance": null,
-    "note": "Tutorial Island"
-  },
   "38": {
     "name": "LMS Wild Varrock",
     "entrance": [
@@ -673,14 +668,6 @@
     "name": "Tunnel of Chaos",
     "entrance": null,
     "note": "Tunnel of Chaos, east of Varrock (What Lies Below)"
-  },
-  "10162": {
-    "name": "Underground Pass - bottom level (Song of the Elves instance)",
-    "entrance": [
-      2434,
-      3315
-    ],
-    "note": "Underground Pass entrance, west of West Ardougne"
   },
   "10164": {
     "name": "Underground Pass - Iban's Temple (post-quest)",

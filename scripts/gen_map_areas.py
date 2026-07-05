@@ -46,8 +46,9 @@ USER_AGENT = "music-cape-helper data generator"
 # mapIDs table centers; no tiles exist for them, so they stay bounds-only.
 # Precision only affects which map list entry gets suggested/highlighted -
 # markers themselves are gated by the client - so a generous box is fine.
-# The ocean underground areas (46-51) are deliberately absent: no music
-# tracks live there and their extents are unknown.
+# Ocean underground areas are added only as verified in-game (Unquiet Ocean
+# covers Sophanem Dungeon); the others (46, 48-51) are absent because their
+# extents are unknown.
 CURATED_BOUNDS = {
     8: [[2839, 6295], [3031, 6487]],    # Ghorrock Prison (id reused, see below)
     21: [[3008, 5184], [3200, 5376]],   # Tolna's Rift (moved to the mid-band since the snapshot)
@@ -60,10 +61,11 @@ CURATED_BOUNDS = {
     39: [[2880, 5696], [3032, 5832]],   # Ruins of Camdozaal
     40: [[2944, 4736], [3136, 4928]],   # The Abyss
     41: [[2560, 6272], [2752, 6464]],   # Lassar Undercity
-    42: [[3036, 9216], [3712, 9792]],   # Kharidian Desert Underground (incl. old Kalphite Hives)
+    42: [[3036, 9296], [3712, 9792]],   # Kharidian Desert Underground (y-min carved so Sophanem Dungeon goes to 47)
     43: [[1152, 9280], [1920, 9728]],   # Varlamore Underground (Cam Torum/Neypotzli overlap it; smaller wins)
     44: [[1344, 9472], [1536, 9664]],   # Cam Torum
     45: [[1344, 9600], [1536, 9728]],   # Neypotzli (below Cam Torum; keep the city center out of its box)
+    47: [[3072, 8832], [3712, 9280]],   # Unquiet Ocean Underground (desert coast; covers Sophanem Dungeon)
 }
 
 # Stale basemaps entries to discard: id 8 was "Kalphite Hives" in 2019 (now

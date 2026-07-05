@@ -258,6 +258,10 @@ def build_locations_from_inline_maps(inline_maps, existing_locations):
     new_locations = []
     multi_group_seen = set()
     for im in inline_maps:
+        # Historical ("hist") and absent ("no") features mark removed or
+        # never-present content - guiding players to them marks empty space.
+        if im["bucket"] in ("hist", "no"):
+            continue
         coords = expand_shape_coords(im)
         c = centroid(coords)
         if not c:

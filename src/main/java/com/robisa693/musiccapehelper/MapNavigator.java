@@ -225,6 +225,113 @@ class MapNavigator
         return best != null ? best.name : null;
     }
 
+    /**
+     * Whether some in-game map area actually renders this 64x64 map square.
+     * The engine counts padded/empty squares as inside an area, so without
+     * this check a marker can land on blank blackness. Curated areas without
+     * square data are trusted (nothing to verify against).
+     */
+    private boolean renderedChunk(int cx, int cy)
+    {
+        for (MapArea area : areaIndex)
+        {
+            if (area.squares != null && !area.squares.isEmpty())
+            {
+                for (List<Number> square : area.squares)
+                {
+                    if (square.size() >= 2 && square.get(0).intValue() == cx && square.get(1).intValue() == cy)
+                    {
+                        return true;
+                    }
+                }
+            }
+            else if (area.id != 0 && area.bounds != null && area.bounds.size() >= 2
+                && area.bounds.get(0).size() >= 2 && area.bounds.get(1).size() >= 2)
+            {
+                int px = cx * 64 + 32;
+                int py = cy * 64 + 32;
+                if (px >= area.bounds.get(0).get(0).intValue()
+                    && px <= area.bounds.get(1).get(0).intValue()
+                    && py >= area.bounds.get(0).get(1).intValue()
+                    && py <= area.bounds.get(1).get(1).intValue())
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether the location's actual spot - or a square its region covers - is
+     * rendered by some map area. Region bbox centers can sit in an interior
+     * hole of a donut-shaped dungeon, so the squares the polygon spans count
+     * too; the span's exclusive top/right edge is left out so a corner sitting
+     * exactly on a square boundary doesn't count the neighbouring square it
+     * merely touches.
+     */
+    private boolean isDisplayable(ActiveLocation a)
+    {
+        if (renderedChunk(a.point.getX() / 64, a.point.getY() / 64))
+        {
+            return true;
+        }
+        if (a.polygon == null)
+        {
+            return false;
+        }
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
+        for (List<Number> vertex : a.polygon)
+        {
+            if (vertex == null || vertex.size() < 2)
+            {
+                continue;
+            }
+            int vx = vertex.get(0).intValue();
+            int vy = vertex.get(1).intValue();
+            minX = Math.min(minX, vx);
+            minY = Math.min(minY, vy);
+            maxX = Math.max(maxX, vx);
+            maxY = Math.max(maxY, vy);
+        }
+        if (maxX < minX)
+        {
+            return false;
+        }
+        int cx1 = minX / 64, cx2 = Math.max(minX, maxX - 1) / 64;
+        int cy1 = minY / 64, cy2 = Math.max(minY, maxY - 1) / 64;
+        for (int cx = cx1; cx <= cx2; cx++)
+        {
+            for (int cy = cy1; cy <= cy2; cy++)
+            {
+                if (renderedChunk(cx, cy))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Squared distance in surface-projected space: dungeon-band coordinates
+     * are mapped to the ground above them so locations in different bands
+     * compare sensibly.
+     */
+    private static long projectedDistance(WorldPoint from, WorldPoint to)
+    {
+        if (from == null)
+        {
+            return 0;
+        }
+        long dx = to.getX() - from.getX();
+        long fy = from.getY() >= UNDERGROUND_Y ? from.getY() - UNDERGROUND_Y : from.getY();
+        long ty = to.getY() >= UNDERGROUND_Y ? to.getY() - UNDERGROUND_Y : to.getY();
+        long dy = ty - fy;
+        return dx * dx + dy * dy;
+    }
+
     /** How many of the area's squares fall in the 3x3 neighbourhood of (cx, cy). */
     private static int neighbourhoodHits(List<List<Number>> squares, int cx, int cy)
     {
@@ -292,8 +399,17 @@ class MapNavigator
         return mapIcon;
     }
 
-    void navigateTo(String trackName, Runnable fallback)
+    void navigateTo(String trackName, String unlockHint, Runnable fallback)
     {
+        // The track's own unlock hint (the same text the side panel shows) is
+        // appended to every guidance message: zone access notes describe how
+        // to reach the area, which can mislead when the unlock needs something
+        // specific inside it (The Spurned Demon unlocks fighting Zalcano, not
+        // just by entering Prifddinas).
+        String hintSuffix = unlockHint != null && !unlockHint.trim().isEmpty()
+            ? " Hint: " + unlockHint + "."
+            : "";
+
         List<ActiveLocation> parsed = new ArrayList<>();
         for (MapLocation loc : getLocations(trackName))
         {
@@ -314,7 +430,7 @@ class MapNavigator
             log.debug("navigateTo: no usable coords for '{}', falling back", trackName);
             clientThread.invoke(() -> client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
                 "Music Cape: no map data for " + trackName + " - opening the wiki."
-                    + unlockPlace(trackName), null));
+                    + unlockPlace(trackName) + hintSuffix, null));
             fallback.run();
             return;
         }
@@ -362,12 +478,14 @@ class MapNavigator
                     addMapPoint(overhead, label, undergroundMarker,
                         new net.runelite.api.Point(undergroundMarker.getWidth() / 2, 7));
                     addArea(areas, a.polygon, -UNDERGROUND_Y, true);
-                    // Also mark the actual spot: the client only draws a map point
-                    // when the loaded map area contains it, so this appears once the
-                    // user views the dungeon's own map area (e.g. by clicking its
-                    // entrance icon) while the projected marker shows on the surface.
-                    addMapPoint(a.point, a.name, mapIcon, null);
-                    addArea(areas, a.polygon, 0, false);
+                    // Also mark the actual spot, shown when the user views the map
+                    // area containing it - but only when some area really renders
+                    // it, otherwise the marker points at empty blackness.
+                    if (isDisplayable(a))
+                    {
+                        addMapPoint(a.point, a.name, mapIcon, null);
+                        addArea(areas, a.polygon, 0, false);
+                    }
                     continue;
                 }
 
@@ -393,9 +511,13 @@ class MapNavigator
                         addMapPoint(entry, label, undergroundMarker,
                             new net.runelite.api.Point(undergroundMarker.getWidth() / 2, 7));
                         // Mark the actual spot as well, drawn when the zone's own map
-                        // area is the one loaded in the world map widget.
-                        addMapPoint(a.point, a.name, mapIcon, null);
-                        addArea(areas, a.polygon, 0, false);
+                        // area is the one loaded in the world map widget - but only
+                        // when some area really renders it.
+                        if (isDisplayable(a))
+                        {
+                            addMapPoint(a.point, a.name, mapIcon, null);
+                            addArea(areas, a.polygon, 0, false);
+                        }
                     }
                 }
                 else
@@ -419,6 +541,7 @@ class MapNavigator
                 client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
                     "Music Cape: " + trackName + " is in an area the world map can't show"
                         + " - opening the wiki." + unlockPlace(trackName) + access
+                        + hintSuffix
                         + " The spot will be highlighted in-game when you're nearby.", null);
                 fallback.run();
                 return;
@@ -426,8 +549,28 @@ class MapNavigator
 
             // The in-game map area (map list entry) that can display the exact
             // unlock spot, when one exists; the entry the player should pick to
-            // see the marker at the actual coordinates.
-            String exactArea = areaNameFor(nearestTo(playerLocation(), parsed).point);
+            // see the marker at the actual coordinates. Only locations that
+            // resolve to an area are considered, compared in surface-projected
+            // space - raw distances across coordinate bands are meaningless (a
+            // mid-band pocket always looks closer to a surface player than a
+            // dungeon at y=9600).
+            String exactArea = null;
+            long exactAreaDist = Long.MAX_VALUE;
+            WorldPoint player = playerLocation();
+            for (ActiveLocation a : parsed)
+            {
+                String area = areaNameFor(a.point);
+                if (area == null || !isDisplayable(a))
+                {
+                    continue;
+                }
+                long dist = projectedDistance(player, a.point);
+                if (exactArea == null || dist < exactAreaDist)
+                {
+                    exactArea = area;
+                    exactAreaDist = dist;
+                }
+            }
             suggestedArea = exactArea != null ? exactArea : GIELINOR_SURFACE;
             String mapListHint = exactArea != null && !exactArea.equals(GIELINOR_SURFACE)
                 ? " Pick " + chatHighlight(exactArea) + " in the map list (bottom of the map)"
@@ -440,14 +583,14 @@ class MapNavigator
                 client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
                     "Music Cape: " + trackName + " unlocks inside " + entranceZone.name
                         + ", UNDERGROUND - the red marker is the entrance" + note + "."
-                        + mapListHint, null);
+                        + mapListHint + hintSuffix, null);
             }
             else if (!hasSurface && overheadUsed)
             {
                 client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
                     "Music Cape: " + trackName + " unlocks UNDERGROUND - the red marker on the"
                         + " world map is the surface above it; find the entrance nearby."
-                        + mapListHint, null);
+                        + mapListHint + hintSuffix, null);
             }
 
             if (isWorldMapOpen())
