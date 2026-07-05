@@ -52,7 +52,7 @@ USER_AGENT = "music-cape-helper data generator"
 CURATED_BOUNDS = {
     8: [[2839, 6295], [3031, 6487]],    # Ghorrock Prison (id reused, see below)
     21: [[3008, 5184], [3200, 5376]],   # Tolna's Rift (moved to the mid-band since the snapshot)
-    29: [[3136, 5952], [3392, 6208]],   # Prifddinas
+    29: [[3008, 5952], [3392, 6208]],   # Prifddinas (extends west over the Zalcano/Gauntlet pockets, verified in-game)
     34: [[3136, 12352], [3392, 12608]], # Prifddinas Underground
     35: [[2495, 6015], [2751, 6271]],   # Prifddinas Grand Library
     36: [[3264, 5632], [3648, 6016]],   # LMS Desert Island

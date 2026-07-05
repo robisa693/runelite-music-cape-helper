@@ -64,8 +64,15 @@ class MapNavigator
     private Map<String, String> wikiLocations = new HashMap<>();
     private List<MapArea> areaIndex = Collections.emptyList();
     private final List<WorldMapPoint> activeMapPoints = new ArrayList<>();
-    // A centering is owed to the user but no loaded map area could display a
-    // marker yet; retried on every WORLDMAP_LOADMAP until one can.
+    // Markers placed at the exact unlock spots (as opposed to surface
+    // projections and entrances). Guidance is only complete once a loaded map
+    // area has shown one of these - centering on the surface projection alone
+    // must not stop the map list highlight, or the player is told to pick an
+    // area and then never centered when they do.
+    private final List<WorldPoint> actualPoints = new ArrayList<>();
+    // Guidance is still owed: retried on every WORLDMAP_LOADMAP, and cleared
+    // once a loaded area has displayed an exact spot (or, for tracks with no
+    // displayable exact spot, once anything has been centered).
     private boolean pendingCenter;
     // The map list entry the player should select to see the marker, shown by
     // the map list highlight overlay while a centering is pending.
@@ -460,6 +467,7 @@ class MapNavigator
                     hasSurface = true;
                     markers.add(a);
                     addMapPoint(a.point, a.name, mapIcon, null);
+                    actualPoints.add(a.point);
                     addArea(areas, a.polygon, 0, false);
                     continue;
                 }
@@ -484,6 +492,7 @@ class MapNavigator
                     if (isDisplayable(a))
                     {
                         addMapPoint(a.point, a.name, mapIcon, null);
+                        actualPoints.add(a.point);
                         addArea(areas, a.polygon, 0, false);
                     }
                     continue;
@@ -516,6 +525,7 @@ class MapNavigator
                         if (isDisplayable(a))
                         {
                             addMapPoint(a.point, a.name, mapIcon, null);
+                            actualPoints.add(a.point);
                             addArea(areas, a.polygon, 0, false);
                         }
                     }
@@ -596,12 +606,13 @@ class MapNavigator
             if (isWorldMapOpen())
             {
                 // Map is already open: center it now if the loaded map area can display
-                // one of the markers. If it cannot (e.g. the player is underground so the
-                // map shows a dungeon area), stay pending - WORLDMAP_LOADMAP fires when
-                // the user switches map areas and onMapLoaded() retries. The map list
-                // button (and the right entry, once opened) is highlighted meanwhile.
-                pendingCenter = !centerOnLoadedMap();
-                if (pendingCenter)
+                // one of the markers. Guidance stays pending until a loaded area has
+                // shown an exact spot - WORLDMAP_LOADMAP fires when the user switches
+                // map areas and onMapLoaded() re-centers. The map list button (and the
+                // right entry, once opened) is highlighted meanwhile.
+                boolean centered = centerOnLoadedMap();
+                pendingCenter = !(actualPoints.isEmpty() ? centered : actualShownOnLoadedMap());
+                if (!centered)
                 {
                     client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
                         "Music Cape: pick " + chatHighlight(suggestedArea)
@@ -732,16 +743,36 @@ class MapNavigator
         {
             return;
         }
-        // A map area just loaded: the first open, or the user switched areas (surface
-        // globe, dungeon entrance icon). Center on the nearest marker this area can
-        // display; if it can display none, stay pending for the next area switch.
+        // A map area just loaded: the first open, or the user switched areas via
+        // the map list. Center on the nearest marker this area can display, and
+        // finish the guidance only once an exact spot has been shown - centering
+        // on the surface projection alone keeps it pending so picking the
+        // suggested area later still centers onto the real marker.
         clientThread.invoke(() ->
         {
-            if (pendingCenter && centerOnLoadedMap())
+            if (!pendingCenter)
+            {
+                return;
+            }
+            boolean centered = centerOnLoadedMap();
+            if (actualPoints.isEmpty() ? centered : actualShownOnLoadedMap())
             {
                 pendingCenter = false;
             }
         });
+    }
+
+    /** A marker at an exact unlock spot is displayable on the loaded map area. */
+    private boolean actualShownOnLoadedMap()
+    {
+        for (WorldPoint point : actualPoints)
+        {
+            if (displayableOnLoadedMap(point))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -912,6 +943,7 @@ class MapNavigator
         removeOpenMapInfoBox();
         pendingCenter = false;
         suggestedArea = null;
+        actualPoints.clear();
         activeTrack = null;
         activeLocations = Collections.emptyList();
         mapAreas = Collections.emptyList();
