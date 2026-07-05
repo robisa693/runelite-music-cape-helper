@@ -38,7 +38,9 @@ OUT = os.path.join(SCRIPT_DIR, "..", "src", "main", "resources", "map_areas.json
 # are deliberately absent: no music tracks live there and their extents are
 # unknown.
 CURATED_BOUNDS = {
+    6: [[2960, 9664], [3140, 9868]],    # Dwarven Mines (stale box padded east over Edgeville Dungeon)
     8: [[2839, 6295], [3031, 6487]],    # Ghorrock Prison (id reused, see below)
+    21: [[3008, 5184], [3200, 5376]],   # Tolna's Rift (moved to the mid-band since the snapshot)
     29: [[3136, 5952], [3392, 6208]],   # Prifddinas
     34: [[3136, 12352], [3392, 12608]], # Prifddinas Underground
     35: [[2495, 6015], [2751, 6271]],   # Prifddinas Grand Library
@@ -56,8 +58,12 @@ CURATED_BOUNDS = {
 
 # Stale basemaps entries to discard: id 8 was "Kalphite Hives" in 2019 (now
 # merged into 42 Kharidian Desert Underground) and has been reused in-game
-# for Ghorrock Prison, so its old bounds must not carry the new name.
-SKIP_STALE_IDS = {8}
+# for Ghorrock Prison, so its old bounds must not carry the new name. Id 21
+# Tolna's Rift was moved from the dungeon band into the mid-band - its old
+# bounds sat inside Misthalin Underground and stole containment from it.
+# Id 6 Dwarven Mines: the engine box is viewport-padded ~160 tiles east over
+# the Edgeville Dungeon (Misthalin Underground), so a curated box replaces it.
+SKIP_STALE_IDS = {6, 8, 21}
 
 # The in-game map list was renamed for these since the 2019 snapshot; the
 # current wiki table already has the new names, listed here just for
@@ -71,11 +77,12 @@ def main():
     with urllib.request.urlopen(req, timeout=30) as r:
         basemaps = json.load(r)
 
-    names = {}
+    names, centers = {}, {}
     wt = get_wikitext(MAPIDS_PAGE)
     if wt:
-        rows = re.findall(r"\|\s*(-?\d+)\s*\|\|\s*([^|]+?)\s*\|\|", wt)
-        names = {int(i): n.strip() for i, n in rows}
+        rows = re.findall(r"\|\s*(-?\d+)\s*\|\|\s*([^|]+?)\s*\|\|\s*\((\d+),\s*(\d+)\)", wt)
+        names = {int(i): n.strip() for i, n, _, _ in rows}
+        centers = {int(i): (int(x), int(y)) for i, _, x, y in rows}
 
     areas = []
     seen = set()
@@ -100,6 +107,21 @@ def main():
             "name": names.get(map_id, f"Area {map_id}"),
             "bounds": bounds,
         })
+
+    # An area whose current in-game center falls outside its bounds has been
+    # moved since the bounds were sourced (how Tolna's Rift went stale) - its
+    # box would sit somewhere wrong and steal containment from the area that
+    # really covers those coordinates. Fail loudly so it gets curated.
+    stale = []
+    for a in areas:
+        c = centers.get(a["id"])
+        if not c:
+            continue
+        b = a["bounds"]
+        if not (b[0][0] <= c[0] <= b[1][0] and b[0][1] <= c[1] <= b[1][1]):
+            stale.append(f"{a['id']} {a['name']}: center {c} outside bounds {b}")
+    if stale:
+        raise SystemExit("moved map areas need curated bounds:\n  " + "\n  ".join(stale))
 
     areas.sort(key=lambda a: a["id"])
     with open(OUT, "w") as f:
