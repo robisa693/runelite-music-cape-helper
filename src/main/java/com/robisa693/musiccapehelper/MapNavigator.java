@@ -146,12 +146,6 @@ class MapNavigator
         return coordsMap.getOrDefault(trackName, Collections.emptyList());
     }
 
-    boolean hasLocation(String trackName)
-    {
-        List<MapLocation> locs = coordsMap.get(trackName);
-        return locs != null && !locs.isEmpty();
-    }
-
     String getActiveTrack()
     {
         return activeTrack;

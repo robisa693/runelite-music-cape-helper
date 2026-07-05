@@ -17,11 +17,15 @@ Writes:
 import json
 import os
 import re
+import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, SCRIPT_DIR)
+from scrape_track_coords import get_wikitext  # noqa: E402
+
 COORDS = os.path.join(SCRIPT_DIR, "..", "src", "main", "resources", "track_coords.json")
 ENTRANCES_OUT = os.path.join(SCRIPT_DIR, "..", "src", "main", "resources", "map_entrances.json")
-MAPIDS_RAW = "/home/roberto/.claude/jobs/31b8cbce/tmp/mapids_raw.txt"
+MAPIDS_PAGE = "RuneScape:Map/mapIDs"
 
 # Curated: mapId -> (entrance [x, y] on the surface or None, access note)
 ENTRANCES = {
@@ -140,7 +144,9 @@ ENTRANCES = {
 
 
 def main():
-    wt = open(MAPIDS_RAW).read()
+    wt = get_wikitext(MAPIDS_PAGE)
+    if not wt:
+        raise SystemExit(f"could not fetch {MAPIDS_PAGE} from the wiki")
     rows = re.findall(r'\|\s*(-?\d+)\s*\|\|\s*([^|]+?)\s*\|\|\s*\((\d+),\s*(\d+)\)', wt)
     maps = [(int(i), n.strip(), int(x), int(y)) for i, n, x, y in rows]
     mid = [m for m in maps if 4160 <= m[3] < 6400 and m[0] >= 1]
