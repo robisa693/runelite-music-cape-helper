@@ -215,7 +215,7 @@ class MapNavigator
 
             for (ActiveLocation a : parsed)
             {
-                if (isSurface(a.point))
+                if (isSurface(a))
                 {
                     hasSurface = true;
                     markers.add(a);
@@ -227,27 +227,24 @@ class MapNavigator
                 if (a.point.getY() >= UNDERGROUND_Y)
                 {
                     WorldPoint overhead = new WorldPoint(a.point.getX(), a.point.getY() - UNDERGROUND_Y, 0);
-                    if (isSurface(overhead))
+                    overheadUsed = true;
+                    if (undergroundMarker == null)
                     {
-                        overheadUsed = true;
-                        if (undergroundMarker == null)
-                        {
-                            undergroundMarker = createUndergroundMarker(config.undergroundColor());
-                        }
-                        String label = a.name + " (underground - find the entrance near here)";
-                        markers.add(new ActiveLocation(label, overhead, null, null));
-                        // Anchor the badge so the dot (not the image center) sits on the spot.
-                        addMapPoint(overhead, label, undergroundMarker,
-                            new net.runelite.api.Point(undergroundMarker.getWidth() / 2, 7));
-                        addArea(areas, a.polygon, -UNDERGROUND_Y, true);
-                        // Also mark the actual spot: the client only draws a map point
-                        // when the loaded map area contains it, so this appears once the
-                        // user views the dungeon's own map area (e.g. by clicking its
-                        // entrance icon) while the projected marker shows on the surface.
-                        addMapPoint(a.point, a.name, mapIcon, null);
-                        addArea(areas, a.polygon, 0, false);
-                        continue;
+                        undergroundMarker = createUndergroundMarker(config.undergroundColor());
                     }
+                    String label = a.name + " (underground - find the entrance near here)";
+                    markers.add(new ActiveLocation(label, overhead, null, null));
+                    // Anchor the badge so the dot (not the image center) sits on the spot.
+                    addMapPoint(overhead, label, undergroundMarker,
+                        new net.runelite.api.Point(undergroundMarker.getWidth() / 2, 7));
+                    addArea(areas, a.polygon, -UNDERGROUND_Y, true);
+                    // Also mark the actual spot: the client only draws a map point
+                    // when the loaded map area contains it, so this appears once the
+                    // user views the dungeon's own map area (e.g. by clicking its
+                    // entrance icon) while the projected marker shows on the surface.
+                    addMapPoint(a.point, a.name, mapIcon, null);
+                    addArea(areas, a.polygon, 0, false);
+                    continue;
                 }
 
                 // Self-contained zone (Rat Pits, Keldagrim, ...) with no geometric
@@ -260,7 +257,7 @@ class MapNavigator
                 if (zone.entrance != null && zone.entrance.size() >= 2)
                 {
                     WorldPoint entry = new WorldPoint(zone.entrance.get(0).intValue(), zone.entrance.get(1).intValue(), 0);
-                    if (isSurface(entry))
+                    if (entry.getY() < UNDERGROUND_Y)
                     {
                         entranceZone = zone;
                         if (undergroundMarker == null)
@@ -518,14 +515,16 @@ class MapNavigator
         return mapView != null && !mapView.isHidden();
     }
 
-    boolean isSurface(WorldPoint wp)
+    boolean isSurface(ActiveLocation a)
     {
-        // Classify by the coordinate band only (surface stays below y=6400, matching
-        // how track_coords.json encodes locations). Asking the world map widget via
-        // WorldMapData.surfaceContainsPosition is wrong here: it reflects whichever
-        // map area is currently loaded, so with the player underground it rejects
-        // ordinary surface coordinates and every track fell back to the wiki.
-        return wp.getY() < UNDERGROUND_Y;
+        // A location is on the surface world map when it is below the dungeon
+        // coordinate band AND the wiki draws it on the main map rather than a
+        // separate zone map (mapId - e.g. Mor Ul Rek, the Inferno, Sorceress's
+        // Garden all sit in off-map coordinate pockets below y=6400). Never ask
+        // the world map widget: WorldMapData reflects whichever map area is
+        // currently loaded, so with the player underground it rejects ordinary
+        // surface coordinates and every track fell back to the wiki.
+        return a.point.getY() < UNDERGROUND_Y && a.mapId == null;
     }
 
     private void addMapPoint(WorldPoint wp, String name, BufferedImage image, net.runelite.api.Point imagePoint)
