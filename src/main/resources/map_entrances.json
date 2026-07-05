@@ -706,5 +706,13 @@
       2847
     ],
     "note": "Wrath altar, basement of the Myths' Guild"
+  },
+  "90001": {
+    "name": "Temple of the Eye",
+    "entrance": [
+      3104,
+      3162
+    ],
+    "note": "Portal in the basement of the Wizards' Tower"
   }
 }

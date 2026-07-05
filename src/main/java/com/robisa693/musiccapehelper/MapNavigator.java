@@ -472,7 +472,16 @@ class MapNavigator
                     continue;
                 }
 
-                if (a.point.getY() >= UNDERGROUND_Y)
+                boolean displayable = isDisplayable(a);
+                ZoneEntrance zone = a.mapId != null ? entrances.get(String.valueOf(a.mapId)) : null;
+                boolean zoneHasEntrance = zone != null && zone.entrance != null && zone.entrance.size() >= 2;
+
+                // Dungeon-band coordinates project to the ground above them - but
+                // only when they are real ground. An instance no map renders (e.g.
+                // the Temple of the Eye) projects onto meaningless terrain, so when
+                // its zone has a curated surface entrance, that entrance is the
+                // guidance instead (handled by the zone path below).
+                if (a.point.getY() >= UNDERGROUND_Y && (displayable || !zoneHasEntrance))
                 {
                     WorldPoint overhead = new WorldPoint(a.point.getX(), a.point.getY() - UNDERGROUND_Y, 0);
                     overheadUsed = true;
@@ -489,7 +498,7 @@ class MapNavigator
                     // Also mark the actual spot, shown when the user views the map
                     // area containing it - but only when some area really renders
                     // it, otherwise the marker points at empty blackness.
-                    if (isDisplayable(a))
+                    if (displayable)
                     {
                         addMapPoint(a.point, a.name, mapIcon, null);
                         actualPoints.add(a.point);
@@ -500,12 +509,11 @@ class MapNavigator
 
                 // Self-contained zone (Rat Pits, Keldagrim, ...) with no geometric
                 // surface correspondence: mark the zone's curated surface entrance.
-                ZoneEntrance zone = a.mapId != null ? entrances.get(String.valueOf(a.mapId)) : null;
                 if (zone == null)
                 {
                     continue;
                 }
-                if (zone.entrance != null && zone.entrance.size() >= 2)
+                if (zoneHasEntrance)
                 {
                     WorldPoint entry = new WorldPoint(zone.entrance.get(0).intValue(), zone.entrance.get(1).intValue(), 0);
                     if (entry.getY() < SURFACE_MAX_Y)
@@ -522,7 +530,7 @@ class MapNavigator
                         // Mark the actual spot as well, drawn when the zone's own map
                         // area is the one loaded in the world map widget - but only
                         // when some area really renders it.
-                        if (isDisplayable(a))
+                        if (displayable)
                         {
                             addMapPoint(a.point, a.name, mapIcon, null);
                             actualPoints.add(a.point);

@@ -150,7 +150,20 @@ MAPID_OVERRIDES = {
     "Inferno": 23,           # unlocks entering Mor Ul Rek (wiki: Mor Ul Rek)
     "Darkly Altared": None,  # Skotizo's chamber
     "Monkey Sadness": None,  # Glough's laboratory (MM2 instance)
+    # Zalcano's pocket isn't rendered by the in-game Prifddinas area, so the
+    # center-distance assignment can't attach it; the Prif entrance is still
+    # the right guidance.
+    "The Spurned Demon": 29,
 }
+
+# Instanced areas with no map anywhere (not even a wiki one): unlock place ->
+# (surface entrance, note). Emitted under synthetic ids (90000+) so the plugin
+# can guide to the entrance instead of projecting instance coordinates onto
+# meaningless ground (Guardians of the Rift would project into empty desert).
+PLACE_ENTRANCES = {
+    "Temple of the Eye": ([3104, 3162], "Portal in the basement of the Wizards' Tower"),
+}
+PLACE_ENTRANCE_BASE_ID = 90000
 
 BASEMAPS_URL = "https://maps.runescape.wiki/osrs/data/basemaps.json"
 MAP_AREAS = os.path.join(SCRIPT_DIR, "..", "src", "main", "resources", "map_areas.json")
@@ -272,7 +285,11 @@ def main():
                 current = l.get("mapId")
                 valid = None
                 if current is not None:
-                    if current in bounds:
+                    if current >= PLACE_ENTRANCE_BASE_ID:
+                        # Synthetic place-entrance id from a previous run;
+                        # reapplied below, nothing to validate against.
+                        valid = True
+                    elif current in bounds:
                         b = bounds[current]
                         valid = b[0][0] <= c[0] <= b[1][0] and b[0][1] <= c[1] <= b[1][1]
                     elif current in table_centers:
@@ -315,6 +332,28 @@ def main():
     for track, old, new in dropped:
         print(f"  reassigned {track}: {old} -> {new}")
 
+    # Map-less instances: attach the curated place entrance to every non-surface
+    # location of tracks unlocking there, under a synthetic id. Applied to any
+    # band - the plugin prefers the entrance over projecting coordinates that no
+    # map renders.
+    place_ids = {}
+    try:
+        with open(WIKI_LOCATIONS) as f:
+            wiki_places = json.load(f)
+    except OSError:
+        wiki_places = {}
+    for track, locs in data.items():
+        place = (wiki_places.get(track) or "").strip()
+        if place not in PLACE_ENTRANCES:
+            continue
+        if place not in place_ids:
+            place_ids[place] = PLACE_ENTRANCE_BASE_ID + len(place_ids) + 1
+        for l in locs:
+            c = l.get("center")
+            if c and len(c) >= 2 and c[1] >= 4160:
+                l["mapId"] = place_ids[place]
+                print(f"  place entrance {track}: '{place}' -> synthetic id {place_ids[place]}")
+
     entrances_out = {}
     missing_curation = []
     for mi, name in sorted(used.items()):
@@ -325,6 +364,10 @@ def main():
         else:
             entrance, note = cur
             entrances_out[str(mi)] = {"name": name, "entrance": entrance, "note": note}
+
+    for place, pid in place_ids.items():
+        entrance, note = PLACE_ENTRANCES[place]
+        entrances_out[str(pid)] = {"name": place, "entrance": entrance, "note": note}
 
     # validate entrances
     for mi, e in entrances_out.items():

@@ -52,7 +52,7 @@ USER_AGENT = "music-cape-helper data generator"
 CURATED_BOUNDS = {
     8: [[2839, 6295], [3031, 6487]],    # Ghorrock Prison (id reused, see below)
     21: [[3048, 5224], [3160, 5336]],   # Tolna's Rift (moved to the mid-band; box kept off the Tunnel of Chaos pocket at (3168,5216))
-    29: [[3008, 5952], [3392, 6208]],   # Prifddinas (extends west over the Zalcano/Gauntlet pockets, verified in-game)
+    29: [[3136, 5952], [3392, 6208]],   # Prifddinas (does NOT render the Zalcano pocket at x~3040, verified in-game)
     34: [[3136, 12352], [3392, 12608]], # Prifddinas Underground
     35: [[2495, 6015], [2751, 6271]],   # Prifddinas Grand Library
     36: [[3264, 5632], [3648, 6016]],   # LMS Desert Island
@@ -61,7 +61,7 @@ CURATED_BOUNDS = {
     39: [[2880, 5696], [3032, 5832]],   # Ruins of Camdozaal
     40: [[2944, 4736], [3136, 4928]],   # The Abyss
     41: [[2560, 6272], [2752, 6464]],   # Lassar Undercity
-    42: [[3036, 9296], [3712, 9792]],   # Kharidian Desert Underground (y-min carved so Sophanem Dungeon goes to 47)
+    42: [[3036, 9296], [3556, 9792]],   # Kharidian Desert Underground (east edge stops before the Temple of the Eye instance)
     43: [[1152, 9280], [1920, 9728]],   # Varlamore Underground (Cam Torum/Neypotzli overlap it; smaller wins)
     44: [[1344, 9472], [1536, 9664]],   # Cam Torum
     45: [[1344, 9600], [1536, 9728]],   # Neypotzli (below Cam Torum; keep the city center out of its box)
