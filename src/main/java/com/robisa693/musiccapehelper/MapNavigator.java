@@ -164,37 +164,81 @@ class MapNavigator
 
     /**
      * Name of the in-game map area (map list entry) that can display the point,
-     * or null when no area covers it. The smallest containing area wins, so a
-     * zone nested inside a larger region (Cam Torum in Varlamore Underground)
-     * is preferred over its parent.
+     * or null when no area covers it. Areas carry their occupied 64x64 map
+     * squares (probed from the wiki tile server), so padded engine bounds can't
+     * claim a neighbouring dungeon's coordinates. Scraped centers are region
+     * bbox centers that can sit exactly on a square boundary or in an interior
+     * hole, so the 3x3 square neighbourhood is scored instead of requiring the
+     * exact square; the area with the most nearby squares wins, ties going to
+     * the smallest area (Cam Torum over the surrounding Varlamore Underground).
+     * Curated areas without square data fall back to their bounds box.
      */
     String areaNameFor(WorldPoint wp)
     {
+        int cx = wp.getX() / 64;
+        int cy = wp.getY() / 64;
         MapArea best = null;
+        int bestScore = 0;
         long bestSize = Long.MAX_VALUE;
         for (MapArea area : areaIndex)
         {
-            if (area.bounds == null || area.bounds.size() < 2
-                || area.bounds.get(0).size() < 2 || area.bounds.get(1).size() < 2)
+            int score;
+            long size;
+            if (area.squares != null && !area.squares.isEmpty())
             {
-                continue;
+                score = neighbourhoodHits(area.squares, cx, cy);
+                if (score == 0)
+                {
+                    continue;
+                }
+                size = area.squares.size() * 64L * 64L;
             }
-            long x1 = area.bounds.get(0).get(0).longValue();
-            long y1 = area.bounds.get(0).get(1).longValue();
-            long x2 = area.bounds.get(1).get(0).longValue();
-            long y2 = area.bounds.get(1).get(1).longValue();
-            if (wp.getX() < x1 || wp.getX() > x2 || wp.getY() < y1 || wp.getY() > y2)
+            else
             {
-                continue;
+                if (area.bounds == null || area.bounds.size() < 2
+                    || area.bounds.get(0).size() < 2 || area.bounds.get(1).size() < 2)
+                {
+                    continue;
+                }
+                long x1 = area.bounds.get(0).get(0).longValue();
+                long y1 = area.bounds.get(0).get(1).longValue();
+                long x2 = area.bounds.get(1).get(0).longValue();
+                long y2 = area.bounds.get(1).get(1).longValue();
+                if (wp.getX() < x1 || wp.getX() > x2 || wp.getY() < y1 || wp.getY() > y2)
+                {
+                    continue;
+                }
+                score = 1;
+                size = (x2 - x1) * (y2 - y1);
             }
-            long size = (x2 - x1) * (y2 - y1);
-            if (size < bestSize)
+            if (score > bestScore || (score == bestScore && size < bestSize))
             {
+                bestScore = score;
                 bestSize = size;
                 best = area;
             }
         }
         return best != null ? best.name : null;
+    }
+
+    /** How many of the area's squares fall in the 3x3 neighbourhood of (cx, cy). */
+    private static int neighbourhoodHits(List<List<Number>> squares, int cx, int cy)
+    {
+        int hits = 0;
+        for (List<Number> square : squares)
+        {
+            if (square.size() < 2)
+            {
+                continue;
+            }
+            int dx = square.get(0).intValue() - cx;
+            int dy = square.get(1).intValue() - cy;
+            if (dx >= -1 && dx <= 1 && dy >= -1 && dy <= 1)
+            {
+                hits++;
+            }
+        }
+        return hits;
     }
 
     /**
@@ -804,6 +848,7 @@ class MapNavigator
         int id;
         String name;
         List<List<Number>> bounds;
+        List<List<Number>> squares;
     }
 
     static class MapLocation

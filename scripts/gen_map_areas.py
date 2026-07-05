@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
-"""Fetch in-game world map area names and bounds -> map_areas.json.
+"""Fetch in-game world map area names, bounds and occupied squares -> map_areas.json.
 
 The in-game world map has a "map list" (bottom of the map) with one entry per
 map area: Gielinor Surface, Ancient Cavern, Cam Torum, Mor Ul Rek, ... Bounds
 for each area come from the wiki's map engine config (basemaps.json), which is
-baked from the game cache's map area definitions, so a simple rectangle test
-tells which area can display a coordinate. Names come from the wiki's mapIDs
-table because they match the in-game map list labels ("Gielinor Surface",
-where basemaps.json says "RuneScape Surface") - the plugin string-matches
-these against the map list widget entries to highlight the right row.
+baked from the game cache's map area definitions. Names come from the wiki's
+mapIDs table because they match the in-game map list labels ("Gielinor
+Surface", where basemaps.json says "RuneScape Surface") - the plugin
+string-matches these against the map list widget entries to highlight the
+right row.
+
+The engine bounds are viewport boxes, padded past the area's real extent, so
+adjacent dungeon areas overlap (Dwarven Mines' box covers the Edgeville
+Dungeon, which belongs to Misthalin Underground). To resolve containment
+exactly, each area's occupied 64x64 map squares are probed from the wiki tile
+server: a zoom-2 tile named {plane}_{x//64}_{y//64}.png exists only where the
+area has rendered content, so a missing tile means an empty square. The
+squares list is what the plugin tests against; bounds remain as a fallback
+for curated areas that postdate the engine snapshot and have no tiles.
 
 Only in-game areas (id < 10000) are kept; ids 10000+ are wiki-only maps.
 
@@ -20,25 +29,26 @@ import os
 import re
 import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 from scrape_track_coords import get_wikitext  # noqa: E402
 
 BASEMAPS_URL = "https://maps.runescape.wiki/osrs/data/basemaps.json"
+TILE_URL = "https://maps.runescape.wiki/osrs/tiles/{map_id}_{version}/2/{plane}_{cx}_{cy}.png"
 MAPIDS_PAGE = "RuneScape:Map/mapIDs"
 OUT = os.path.join(SCRIPT_DIR, "..", "src", "main", "resources", "map_areas.json")
+USER_AGENT = "music-cape-helper data generator"
 
 # basemaps.json predates Song of the Elves and lacks every area added since
 # (and id 29). Curated approximate bounds for those, centred on the wiki
-# mapIDs table centers. Precision only affects which map list entry gets
-# suggested/highlighted - markers themselves are gated by the client - so a
-# generous box is fine. Replace with authoritative data if a live source for
-# the current basemaps config turns up. The ocean underground areas (46-51)
-# are deliberately absent: no music tracks live there and their extents are
-# unknown.
+# mapIDs table centers; no tiles exist for them, so they stay bounds-only.
+# Precision only affects which map list entry gets suggested/highlighted -
+# markers themselves are gated by the client - so a generous box is fine.
+# The ocean underground areas (46-51) are deliberately absent: no music
+# tracks live there and their extents are unknown.
 CURATED_BOUNDS = {
-    6: [[2960, 9664], [3140, 9868]],    # Dwarven Mines (stale box padded east over Edgeville Dungeon)
     8: [[2839, 6295], [3031, 6487]],    # Ghorrock Prison (id reused, see below)
     21: [[3008, 5184], [3200, 5376]],   # Tolna's Rift (moved to the mid-band since the snapshot)
     29: [[3136, 5952], [3392, 6208]],   # Prifddinas
@@ -53,17 +63,15 @@ CURATED_BOUNDS = {
     42: [[3036, 9216], [3712, 9792]],   # Kharidian Desert Underground (incl. old Kalphite Hives)
     43: [[1152, 9280], [1920, 9728]],   # Varlamore Underground (Cam Torum/Neypotzli overlap it; smaller wins)
     44: [[1344, 9472], [1536, 9664]],   # Cam Torum
-    45: [[1344, 9568], [1536, 9728]],   # Neypotzli
+    45: [[1344, 9600], [1536, 9728]],   # Neypotzli (below Cam Torum; keep the city center out of its box)
 }
 
 # Stale basemaps entries to discard: id 8 was "Kalphite Hives" in 2019 (now
 # merged into 42 Kharidian Desert Underground) and has been reused in-game
-# for Ghorrock Prison, so its old bounds must not carry the new name. Id 21
-# Tolna's Rift was moved from the dungeon band into the mid-band - its old
-# bounds sat inside Misthalin Underground and stole containment from it.
-# Id 6 Dwarven Mines: the engine box is viewport-padded ~160 tiles east over
-# the Edgeville Dungeon (Misthalin Underground), so a curated box replaces it.
-SKIP_STALE_IDS = {6, 8, 21}
+# for Ghorrock Prison, so neither its old bounds nor its old tiles may carry
+# the new name. Id 21 Tolna's Rift was moved from the dungeon band into the
+# mid-band - its old bounds and tiles sit inside Misthalin Underground.
+SKIP_STALE_IDS = {8, 21}
 
 # The in-game map list was renamed for these since the 2019 snapshot; the
 # current wiki table already has the new names, listed here just for
@@ -71,9 +79,39 @@ SKIP_STALE_IDS = {6, 8, 21}
 # 23 "TzHaar Area" -> "Mor Ul Rek".
 
 
+def tile_exists(map_id, version, plane, cx, cy):
+    url = TILE_URL.format(map_id=map_id, version=version, plane=plane, cx=cx, cy=cy)
+    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=30):
+            return True
+    except urllib.error.HTTPError:
+        return False
+
+
+def probe_squares(map_id, version, bounds):
+    """Occupied 64x64 map squares within the bounds, from the tile server."""
+    chunks = [
+        (cx, cy)
+        for cx in range(bounds[0][0] // 64, bounds[1][0] // 64 + 1)
+        for cy in range(bounds[0][1] // 64, bounds[1][1] // 64 + 1)
+    ]
+
+    def check(chunk):
+        cx, cy = chunk
+        # Content is almost always rendered on plane 0; a few upper-level-only
+        # squares (e.g. Troll Stronghold ledges) exist on plane 1 alone.
+        if tile_exists(map_id, version, 0, cx, cy) or tile_exists(map_id, version, 1, cx, cy):
+            return chunk
+        return None
+
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        return sorted(c for c in pool.map(check, chunks) if c)
+
+
 def main():
     req = urllib.request.Request(
-        BASEMAPS_URL, headers={"User-Agent": "music-cape-helper data generator"})
+        BASEMAPS_URL, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=30) as r:
         basemaps = json.load(r)
 
@@ -89,15 +127,22 @@ def main():
     for m in basemaps:
         map_id = m.get("mapId")
         bounds = m.get("bounds")
+        version = m.get("cacheVersion")
         if map_id is None or map_id < 0 or map_id >= 10000 or not bounds \
                 or map_id in SKIP_STALE_IDS:
             continue
         seen.add(map_id)
-        areas.append({
+        area = {
             "id": map_id,
             "name": names.get(map_id, m.get("name", f"Area {map_id}")),
             "bounds": bounds,
-        })
+        }
+        # The surface needs no square list: the plugin classifies y < 4160 as
+        # surface directly, and probing its ~2700 squares would be wasteful.
+        if map_id != 0 and version:
+            area["squares"] = probe_squares(map_id, version, bounds)
+            print(f"{map_id:3d} {area['name']}: {len(area['squares'])} squares")
+        areas.append(area)
 
     for map_id, bounds in CURATED_BOUNDS.items():
         if map_id in seen:
