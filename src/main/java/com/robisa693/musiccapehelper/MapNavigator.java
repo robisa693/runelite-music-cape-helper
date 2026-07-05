@@ -51,6 +51,8 @@ class MapNavigator
     private final Gson gson;
 
     private Map<String, List<MapLocation>> coordsMap = new HashMap<>();
+    private Map<String, ZoneEntrance> entrances = new HashMap<>();
+    private Map<String, String> wikiLocations = new HashMap<>();
     private final List<WorldMapPoint> activeMapPoints = new ArrayList<>();
     private WorldPoint pendingTarget;
     private final BufferedImage mapIcon;
@@ -96,6 +98,47 @@ class MapNavigator
         {
             coordsMap = new HashMap<>();
         }
+
+        // Surface entrances for self-contained underground zones (Rat Pits,
+        // Keldagrim, ...), keyed by the wiki mapID of the zone. Optional resource.
+        try (InputStreamReader reader = new InputStreamReader(
+            getClass().getResourceAsStream("/map_entrances.json"), StandardCharsets.UTF_8))
+        {
+            Type type = new TypeToken<Map<String, ZoneEntrance>>() {}.getType();
+            entrances = gson.fromJson(reader, type);
+        }
+        catch (Exception e)
+        {
+            log.debug("No map entrance data available", e);
+        }
+        if (entrances == null)
+        {
+            entrances = new HashMap<>();
+        }
+
+        // Human-readable unlock place names from the wiki infobox, used to tell
+        // the player where a track unlocks when the map cannot show it.
+        try (InputStreamReader reader = new InputStreamReader(
+            getClass().getResourceAsStream("/wiki_locations.json"), StandardCharsets.UTF_8))
+        {
+            Type type = new TypeToken<Map<String, String>>() {}.getType();
+            wikiLocations = gson.fromJson(reader, type);
+        }
+        catch (Exception e)
+        {
+            log.debug("No wiki location data available", e);
+        }
+        if (wikiLocations == null)
+        {
+            wikiLocations = new HashMap<>();
+        }
+    }
+
+    /** "It unlocks at: X." when the wiki knows the place, otherwise "". */
+    private String unlockPlace(String trackName)
+    {
+        String loc = wikiLocations.get(trackName);
+        return loc != null ? " It unlocks at: " + loc + "." : "";
     }
 
     List<MapLocation> getLocations(String trackName)
@@ -142,13 +185,16 @@ class MapNavigator
             WorldPoint wp = new WorldPoint(c.get(0).intValue(), c.get(1).intValue(), c.get(2).intValue());
             if (parsed.stream().noneMatch(a -> a.point.equals(wp)))
             {
-                parsed.add(new ActiveLocation(loc.name != null ? loc.name : trackName, wp, loc.polygon));
+                parsed.add(new ActiveLocation(loc.name != null ? loc.name : trackName, wp, loc.polygon, loc.mapId));
             }
         }
 
         if (parsed.isEmpty())
         {
             log.debug("navigateTo: no usable coords for '{}', falling back", trackName);
+            clientThread.invoke(() -> client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
+                "Music Cape: no map data for " + trackName + " - opening the wiki."
+                    + unlockPlace(trackName), null));
             fallback.run();
             return;
         }
@@ -167,6 +213,8 @@ class MapNavigator
             List<DisplayArea> areas = new ArrayList<>();
             boolean hasSurface = false;
             boolean overheadUsed = false;
+            ZoneEntrance entranceZone = null;
+            ZoneEntrance accessOnlyZone = null;
             BufferedImage undergroundMarker = null;
 
             for (ActiveLocation a : parsed)
@@ -191,12 +239,43 @@ class MapNavigator
                             undergroundMarker = createUndergroundMarker(config.undergroundColor());
                         }
                         String label = a.name + " (underground - find the entrance near here)";
-                        markers.add(new ActiveLocation(label, overhead, null));
+                        markers.add(new ActiveLocation(label, overhead, null, null));
                         // Anchor the badge so the dot (not the image center) sits on the spot.
                         addMapPoint(overhead, label, undergroundMarker,
                             new net.runelite.api.Point(undergroundMarker.getWidth() / 2, 7));
                         addArea(areas, a.polygon, -UNDERGROUND_Y, true);
+                        continue;
                     }
+                }
+
+                // Self-contained zone (Rat Pits, Keldagrim, ...) with no geometric
+                // surface correspondence: mark the zone's curated surface entrance.
+                ZoneEntrance zone = a.mapId != null ? entrances.get(String.valueOf(a.mapId)) : null;
+                if (zone == null)
+                {
+                    continue;
+                }
+                if (zone.entrance != null && zone.entrance.size() >= 2)
+                {
+                    WorldPoint entry = new WorldPoint(zone.entrance.get(0).intValue(), zone.entrance.get(1).intValue(), 0);
+                    if (isSurface(entry))
+                    {
+                        entranceZone = zone;
+                        if (undergroundMarker == null)
+                        {
+                            undergroundMarker = createUndergroundMarker(config.undergroundColor());
+                        }
+                        String label = "Entrance: " + zone.name + " (" + trackName + " is inside)";
+                        markers.add(new ActiveLocation(label, entry, null, null));
+                        addMapPoint(entry, label, undergroundMarker,
+                            new net.runelite.api.Point(undergroundMarker.getWidth() / 2, 7));
+                    }
+                }
+                else
+                {
+                    // Teleport-only / instanced zone: nothing to mark, but we can
+                    // still tell the player how the zone is accessed.
+                    accessOnlyZone = zone;
                 }
             }
 
@@ -207,14 +286,25 @@ class MapNavigator
                 // Nothing the world map can show (instanced area with no surface
                 // correspondence): open the wiki instead. The hint arrow and in-scene
                 // highlight still guide the player once they are near the spot.
+                String access = accessOnlyZone != null && accessOnlyZone.note != null
+                    ? " Access: " + accessOnlyZone.note + "."
+                    : "";
                 client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
                     "Music Cape: " + trackName + " is in an area the world map can't show"
-                        + " - opening the wiki. The spot will be highlighted in-game when you're nearby.", null);
+                        + " - opening the wiki." + unlockPlace(trackName) + access
+                        + " The spot will be highlighted in-game when you're nearby.", null);
                 fallback.run();
                 return;
             }
 
-            if (!hasSurface && overheadUsed)
+            if (!hasSurface && entranceZone != null)
+            {
+                String note = entranceZone.note != null ? " (" + entranceZone.note + ")" : "";
+                client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
+                    "Music Cape: " + trackName + " unlocks inside " + entranceZone.name
+                        + ", UNDERGROUND. The red marker on the world map is the entrance" + note + ".", null);
+            }
+            else if (!hasSurface && overheadUsed)
             {
                 client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
                     "Music Cape: " + trackName + " unlocks UNDERGROUND. The red 'UNDERGROUND' marker on"
@@ -573,12 +663,14 @@ class MapNavigator
         final String name;
         final WorldPoint point;
         final List<List<Number>> polygon;
+        final Integer mapId;
 
-        ActiveLocation(String name, WorldPoint point, List<List<Number>> polygon)
+        ActiveLocation(String name, WorldPoint point, List<List<Number>> polygon, Integer mapId)
         {
             this.name = name;
             this.point = point;
             this.polygon = polygon;
+            this.mapId = mapId;
         }
     }
 
@@ -587,6 +679,14 @@ class MapNavigator
         String name;
         List<Number> center;
         List<List<Number>> polygon;
+        Integer mapId;
+    }
+
+    static class ZoneEntrance
+    {
+        String name;
+        List<Number> entrance;
+        String note;
     }
 
     /**

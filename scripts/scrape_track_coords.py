@@ -218,6 +218,11 @@ def parse_subpage_data(wikitext):
     if plane_m:
         plane = int(plane_m.group(1))
 
+    map_id = None
+    map_id_m = re.search(r'\|\s*mapID\s*=\s*(\d+)', wikitext)
+    if map_id_m:
+        map_id = int(map_id_m.group(1))
+
     polygon = []
     pt_pattern = re.compile(r'\[(\d+\.?\d*)\s*,\s*(\d+\.?\d*)\]')
     for match in pt_pattern.finditer(wikitext):
@@ -227,6 +232,7 @@ def parse_subpage_data(wikitext):
         "center": center,
         "plane": plane,
         "polygon": polygon,
+        "mapId": map_id,
     }
 
 def centroid(coords):
@@ -269,11 +275,20 @@ def build_locations_from_inline_maps(inline_maps, existing_locations):
 
         all_locations = existing_locations + new_locations
         if not any(loc["center"] == full_center for loc in all_locations):
-            new_locations.append({
+            entry = {
                 "name": loc_name,
                 "center": full_center,
                 "polygon": coords,
-            })
+            }
+            # Record which named wiki map the feature belongs to (mapID); the
+            # main surface map is -1/absent and is left out.
+            try:
+                map_id = int(im.get("mapID", "-1"))
+                if map_id >= 0:
+                    entry["mapId"] = map_id
+            except (ValueError, TypeError):
+                pass
+            new_locations.append(entry)
     return new_locations
 
 def main():
@@ -318,11 +333,14 @@ def main():
                     if sub_data:
                         loc_name = resolve_inline_map_name(sub_wt) or subpage.replace("Map:", "").replace(" music", "").strip()
                         full_center = sub_data["center"] + [sub_data["plane"]]
-                        locations.append({
+                        entry = {
                             "name": loc_name,
                             "center": full_center,
                             "polygon": sub_data["polygon"],
-                        })
+                        }
+                        if sub_data.get("mapId") is not None:
+                            entry["mapId"] = sub_data["mapId"]
+                        locations.append(entry)
                     else:
                         # Some Map: subpages don't use the explicit x=/y=
                         # "Music track map" format; instead they embed one or
