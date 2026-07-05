@@ -1,5 +1,6 @@
 package com.robisa693.musiccapehelper;
 
+import com.robisa693.musiccapehelper.MusicCapeHelperConfig.ClickMode;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -43,6 +44,9 @@ class MusicCapeHelperPanel extends PluginPanel
     private static final Color COLOR_HINT = new Color(180, 180, 180);
     private static final Color COLOR_HEADER = Color.WHITE;
     private static final Color COLOR_HOVER = new Color(50, 50, 60);
+    private static final Color COLOR_TOGGLE_ACTIVE = new Color(70, 70, 90);
+    private static final Color COLOR_TOGGLE_INACTIVE = new Color(40, 40, 50);
+    private static final Color COLOR_COORDS = new Color(100, 160, 200);
 
     private final MusicCapeHelperPlugin plugin;
     private final MusicCapeHelperConfig config;
@@ -50,14 +54,19 @@ class MusicCapeHelperPanel extends PluginPanel
     private final OkHttpClient okHttpClient;
     private final Client client;
     private final ClientThread clientThread;
+    private final MapNavigator mapNavigator;
+
+    private ClickMode clickMode;
 
     private JLabel summaryLabel;
     private JTextField searchField;
     private JCheckBox missingOnlyCheck;
+    private JLabel wikiToggle;
+    private JLabel mapToggle;
     private JPanel trackListPanel;
     private String filterText = "";
 
-    MusicCapeHelperPanel(MusicCapeHelperPlugin plugin, MusicCapeHelperConfig config, ConfigManager configManager, OkHttpClient okHttpClient, Client client, ClientThread clientThread)
+    MusicCapeHelperPanel(MusicCapeHelperPlugin plugin, MusicCapeHelperConfig config, ConfigManager configManager, OkHttpClient okHttpClient, Client client, ClientThread clientThread, MapNavigator mapNavigator)
     {
         this.plugin = plugin;
         this.config = config;
@@ -65,6 +74,8 @@ class MusicCapeHelperPanel extends PluginPanel
         this.okHttpClient = okHttpClient;
         this.client = client;
         this.clientThread = clientThread;
+        this.mapNavigator = mapNavigator;
+        this.clickMode = config.clickMode();
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -108,6 +119,9 @@ class MusicCapeHelperPanel extends PluginPanel
         add(missingOnlyCheck);
         add(Box.createRigidArea(new Dimension(0, 8)));
 
+        add(createToggleBar());
+        add(Box.createRigidArea(new Dimension(0, 4)));
+
         trackListPanel = new JPanel()
         {
             @Override
@@ -127,6 +141,89 @@ class MusicCapeHelperPanel extends PluginPanel
         rebuild();
     }
 
+    private JPanel createToggleBar()
+    {
+        JPanel bar = new JPanel();
+        bar.setLayout(new BoxLayout(bar, BoxLayout.X_AXIS));
+        bar.setAlignmentX(Component.LEFT_ALIGNMENT);
+        bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+
+        wikiToggle = createToggleLabel(" Wiki ");
+        mapToggle = createToggleLabel(" Map ");
+
+        updateToggleColors();
+
+        wikiToggle.addMouseListener(new MouseAdapter()
+        {
+            @Override
+            public void mouseClicked(MouseEvent e)
+            {
+                setClickMode(ClickMode.WIKI);
+            }
+        });
+
+        mapToggle.addMouseListener(new MouseAdapter()
+        {
+            @Override
+            public void mouseClicked(MouseEvent e)
+            {
+                setClickMode(ClickMode.MAP);
+            }
+        });
+
+        JLabel clearLabel = createToggleLabel(" ✕ ");
+        clearLabel.setBackground(COLOR_TOGGLE_INACTIVE);
+        clearLabel.setForeground(Color.GRAY);
+        clearLabel.setToolTipText("Clear the marked track (map marker, highlights and hint arrow)");
+        clearLabel.addMouseListener(new MouseAdapter()
+        {
+            @Override
+            public void mouseClicked(MouseEvent e)
+            {
+                mapNavigator.clear();
+            }
+        });
+
+        bar.add(wikiToggle);
+        bar.add(Box.createRigidArea(new Dimension(4, 0)));
+        bar.add(mapToggle);
+        bar.add(Box.createHorizontalGlue());
+        bar.add(clearLabel);
+
+        return bar;
+    }
+
+    private static JLabel createToggleLabel(String text)
+    {
+        JLabel label = new JLabel(text);
+        label.setOpaque(true);
+        label.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+        label.setFont(label.getFont().deriveFont(Font.BOLD, 12f));
+        label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return label;
+    }
+
+    private void updateToggleColors()
+    {
+        wikiToggle.setBackground(clickMode == ClickMode.WIKI ? COLOR_TOGGLE_ACTIVE : COLOR_TOGGLE_INACTIVE);
+        wikiToggle.setForeground(clickMode == ClickMode.WIKI ? Color.WHITE : Color.GRAY);
+        mapToggle.setBackground(clickMode == ClickMode.MAP ? COLOR_TOGGLE_ACTIVE : COLOR_TOGGLE_INACTIVE);
+        mapToggle.setForeground(clickMode == ClickMode.MAP ? Color.WHITE : Color.GRAY);
+    }
+
+    private void setClickMode(ClickMode mode)
+    {
+        if (clickMode == mode)
+        {
+            return;
+        }
+        clickMode = mode;
+        configManager.setConfiguration("musiccapehelper", "clickMode", mode);
+        updateToggleColors();
+        mapNavigator.clear();
+        rebuild();
+    }
+
     private void onFilterChanged()
     {
         filterText = searchField.getText().trim().toLowerCase();
@@ -135,50 +232,59 @@ class MusicCapeHelperPanel extends PluginPanel
 
     void rebuild()
     {
+        // Gather game state on the client thread, then apply all Swing
+        // mutations on the EDT - mixing the two freezes the client.
         clientThread.invokeLater(() ->
         {
             List<TrackData> tracks = plugin.getVisibleTracks();
-            Map<Integer, Boolean> unlockedState = plugin.getUnlockedState();
-
+            Map<Integer, Boolean> unlockedState = new java.util.HashMap<>(plugin.getUnlockedState());
             long total = plugin.getTotalTracks();
             long unlocked = plugin.getUnlockedCount();
-            summaryLabel.setText("Tracks: " + unlocked + " / " + total + " unlocked");
-
-            boolean hasData = !plugin.getUnlockedState().isEmpty();
-
-            List<TrackData> filtered = tracks.stream()
-                .filter(t -> filterText.isEmpty() || t.displayName.toLowerCase().contains(filterText))
-                .collect(Collectors.toList());
-
-            trackListPanel.removeAll();
-
-            if (!hasData)
-            {
-                JLabel empty = new JLabel("Open the Music tab\nto populate this list.");
-                empty.setForeground(COLOR_HINT);
-                empty.setAlignmentX(Component.LEFT_ALIGNMENT);
-                trackListPanel.add(empty);
-            }
-            else if (filtered.isEmpty())
-            {
-                JLabel empty = new JLabel("No tracks match\nyour filter.");
-                empty.setForeground(COLOR_HINT);
-                empty.setAlignmentX(Component.LEFT_ALIGNMENT);
-                trackListPanel.add(empty);
-            }
-            else
-            {
-                for (TrackData track : filtered)
-                {
-                    trackListPanel.add(createTrackRow(track, unlockedState));
-                    trackListPanel.add(Box.createRigidArea(new Dimension(0, 4)));
-                }
-            }
-
-            trackListPanel.revalidate();
-            trackListPanel.repaint();
-            revalidate();
+            SwingUtilities.invokeLater(() -> rebuildUI(tracks, unlockedState, total, unlocked));
         });
+    }
+
+    private void rebuildUI(List<TrackData> tracks, Map<Integer, Boolean> unlockedState, long total, long unlocked)
+    {
+        clickMode = config.clickMode();
+        updateToggleColors();
+
+        summaryLabel.setText("Tracks: " + unlocked + " / " + total + " unlocked");
+
+        boolean hasData = !unlockedState.isEmpty();
+
+        List<TrackData> filtered = tracks.stream()
+            .filter(t -> filterText.isEmpty() || t.displayName.toLowerCase().contains(filterText))
+            .collect(Collectors.toList());
+
+        trackListPanel.removeAll();
+
+        if (!hasData)
+        {
+            JLabel empty = new JLabel("Open the Music tab\nto populate this list.");
+            empty.setForeground(COLOR_HINT);
+            empty.setAlignmentX(Component.LEFT_ALIGNMENT);
+            trackListPanel.add(empty);
+        }
+        else if (filtered.isEmpty())
+        {
+            JLabel empty = new JLabel("No tracks match\nyour filter.");
+            empty.setForeground(COLOR_HINT);
+            empty.setAlignmentX(Component.LEFT_ALIGNMENT);
+            trackListPanel.add(empty);
+        }
+        else
+        {
+            for (TrackData track : filtered)
+            {
+                trackListPanel.add(createTrackRow(track, unlockedState));
+                trackListPanel.add(Box.createRigidArea(new Dimension(0, 4)));
+            }
+        }
+
+        trackListPanel.revalidate();
+        trackListPanel.repaint();
+        revalidate();
     }
 
     private JPanel createTrackRow(TrackData track, Map<Integer, Boolean> unlockedState)
@@ -223,6 +329,16 @@ class MusicCapeHelperPanel extends PluginPanel
         areaLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         row.add(areaLabel);
 
+        if (clickMode == ClickMode.MAP)
+        {
+            String coordText = coordString(track.displayName);
+            JLabel coordLabel = new JLabel(coordText);
+            coordLabel.setForeground(COLOR_COORDS);
+            coordLabel.setFont(coordLabel.getFont().deriveFont(10f));
+            coordLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            row.add(coordLabel);
+        }
+
         row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         row.addMouseListener(new MouseAdapter()
@@ -230,7 +346,14 @@ class MusicCapeHelperPanel extends PluginPanel
             @Override
             public void mouseClicked(MouseEvent e)
             {
-                resolveAndBrowse(track.displayName);
+                if (clickMode == ClickMode.MAP)
+                {
+                    mapNavigator.navigateTo(track.displayName, () -> resolveAndBrowse(track.displayName));
+                }
+                else
+                {
+                    resolveAndBrowse(track.displayName);
+                }
             }
 
             @Override
@@ -251,16 +374,21 @@ class MusicCapeHelperPanel extends PluginPanel
         return row;
     }
 
+    private String coordString(String trackName)
+    {
+        List<MapNavigator.MapLocation> locs = mapNavigator.getLocations(trackName);
+        List<Number> c = locs.isEmpty() ? null : locs.get(0).center;
+        if (c == null || c.size() < 3)
+        {
+            return "[?]";
+        }
+        String coords = "[" + c.get(0).intValue() + ", " + c.get(1).intValue() + ", " + c.get(2).intValue() + "]";
+        return locs.size() > 1 ? coords + " +" + (locs.size() - 1) + " more" : coords;
+    }
+
     private void resolveAndBrowse(String trackName)
     {
         String plainUrl = wikiUrlForTrack(trackName);
-
-        if (!config.wikiLookup())
-        {
-            browseUrl(plainUrl);
-            return;
-        }
-
         String apiEncoded = URLEncoder.encode(trackName, StandardCharsets.UTF_8);
         String apiUrl = "https://oldschool.runescape.wiki/api.php?action=query&titles="
             + apiEncoded + "_(music_track)&format=json&redirects=1";

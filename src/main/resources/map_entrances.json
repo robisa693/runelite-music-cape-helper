@@ -1,0 +1,746 @@
+{
+  "1": {
+    "name": "Ancient Cavern",
+    "entrance": [
+      2512,
+      3508
+    ],
+    "note": "Dive into the whirlpool at Otto's Grotto, Baxtorian Falls"
+  },
+  "4": {
+    "name": "Braindeath Island",
+    "entrance": [
+      3680,
+      3495
+    ],
+    "note": "Sail with Pirate Pete, north-east of the Ectofuntus (Rum Deal)"
+  },
+  "5": {
+    "name": "Dorgesh-Kaan",
+    "entrance": [
+      3208,
+      3216
+    ],
+    "note": "Tunnel in the Lumbridge Castle cellar (Death to the Dorgeshuun)"
+  },
+  "7": {
+    "name": "God Wars Dungeon",
+    "entrance": [
+      2916,
+      3746
+    ],
+    "note": "Cave entrance north of Trollheim"
+  },
+  "13": {
+    "name": "Mole Hole",
+    "entrance": [
+      2996,
+      3384
+    ],
+    "note": "Mole hill in Falador Park (use a spade)"
+  },
+  "16": {
+    "name": "Ourania Altar",
+    "entrance": [
+      2452,
+      3231
+    ],
+    "note": "Cave entrance south of West Ardougne, near the Battlefield"
+  },
+  "18": {
+    "name": "Stronghold of Security",
+    "entrance": [
+      3081,
+      3421
+    ],
+    "note": "Hole next to the well in Barbarian Village"
+  },
+  "21": {
+    "name": "Tolna's Rift",
+    "entrance": [
+      3310,
+      3452
+    ],
+    "note": "Rift east of Varrock (A Soul's Bane)"
+  },
+  "23": {
+    "name": "Mor Ul Rek",
+    "entrance": [
+      2857,
+      3169
+    ],
+    "note": "Inside the Karamja volcano (TzHaar area)"
+  },
+  "24": {
+    "name": "Lair of Tarn Razorlor",
+    "entrance": [
+      3440,
+      3232
+    ],
+    "note": "Via the Abandoned Mine, south-west Morytania (Haunted Mine)"
+  },
+  "28": {
+    "name": "Zanaris",
+    "entrance": [
+      3201,
+      3169
+    ],
+    "note": "Shed in Lumbridge Swamp (Lost City) or fairy rings"
+  },
+  "29": {
+    "name": "Prifddinas",
+    "entrance": [
+      2240,
+      3270
+    ],
+    "note": "Enter Prifddinas, Tirannwn (Song of the Elves)"
+  },
+  "35": {
+    "name": "Prifddinas Grand Library",
+    "entrance": [
+      2240,
+      3270
+    ],
+    "note": "Inside Prifddinas - the Grand Library"
+  },
+  "36": {
+    "name": "LMS Desert Island",
+    "entrance": [
+      3138,
+      3635
+    ],
+    "note": "Last Man Standing lobby, Ferox Enclave"
+  },
+  "37": {
+    "name": "Tutorial Island",
+    "entrance": null,
+    "note": "Tutorial Island"
+  },
+  "38": {
+    "name": "LMS Wild Varrock",
+    "entrance": [
+      3138,
+      3635
+    ],
+    "note": "Last Man Standing lobby, Ferox Enclave"
+  },
+  "39": {
+    "name": "Ruins of Camdozaal",
+    "entrance": [
+      3000,
+      3494
+    ],
+    "note": "Ruins below Ice Mountain (Below Ice Mountain)"
+  },
+  "40": {
+    "name": "The Abyss",
+    "entrance": [
+      3102,
+      3557
+    ],
+    "note": "Mage of Zamorak, low Wilderness north of Edgeville"
+  },
+  "41": {
+    "name": "Lassar Undercity",
+    "entrance": null,
+    "note": "Lassar Undercity, beneath the Shattered Relics area (Desert Treasure II)"
+  },
+  "10001": {
+    "name": "Abandoned Mine - Level 2",
+    "entrance": [
+      3440,
+      3232
+    ],
+    "note": "Abandoned Mine, south-west Morytania"
+  },
+  "10003": {
+    "name": "Abandoned Mine - Level 4",
+    "entrance": [
+      3440,
+      3232
+    ],
+    "note": "Abandoned Mine, south-west Morytania"
+  },
+  "10004": {
+    "name": "Abandoned Mine - Level 5",
+    "entrance": [
+      3440,
+      3232
+    ],
+    "note": "Abandoned Mine, south-west Morytania"
+  },
+  "10005": {
+    "name": "Abandoned Mine - Level 6",
+    "entrance": [
+      3440,
+      3232
+    ],
+    "note": "Abandoned Mine, south-west Morytania"
+  },
+  "10006": {
+    "name": "Abyss",
+    "entrance": [
+      3102,
+      3557
+    ],
+    "note": "Mage of Zamorak, low Wilderness north of Edgeville"
+  },
+  "10009": {
+    "name": "Air altar",
+    "entrance": [
+      2985,
+      3292
+    ],
+    "note": "Air altar ruins south of Falador"
+  },
+  "10010": {
+    "name": "Airship platform",
+    "entrance": null,
+    "note": "Airship platform (Monkey Madness II)"
+  },
+  "10012": {
+    "name": "Ancient Cavern lighting area",
+    "entrance": [
+      2512,
+      3508
+    ],
+    "note": "Dive into the whirlpool at Otto's Grotto, Baxtorian Falls"
+  },
+  "10013": {
+    "name": "Another Slice of H.A.M. Sigmund fight area",
+    "entrance": null,
+    "note": "Quest cutscene (Another Slice of H.A.M.)"
+  },
+  "10019": {
+    "name": "Barbarian Assault",
+    "entrance": [
+      2531,
+      3577
+    ],
+    "note": "Barbarian Outpost, north of Baxtorian Falls"
+  },
+  "10020": {
+    "name": "Barbarian Assault lobby",
+    "entrance": [
+      2531,
+      3577
+    ],
+    "note": "Barbarian Outpost, north of Baxtorian Falls"
+  },
+  "10022": {
+    "name": "Blast Furnace",
+    "entrance": [
+      2730,
+      3713
+    ],
+    "note": "Inside Keldagrim (tunnel east of Rellekka) - the Blast Furnace"
+  },
+  "10024": {
+    "name": "Bouncer's Cave",
+    "entrance": null,
+    "note": "Quest area"
+  },
+  "10028": {
+    "name": "Burthorpe Games Room",
+    "entrance": [
+      2900,
+      3565
+    ],
+    "note": "Games room in Burthorpe castle"
+  },
+  "10029": {
+    "name": "Cabin Fever boats",
+    "entrance": null,
+    "note": "Quest cutscene (Cabin Fever)"
+  },
+  "10031": {
+    "name": "Corporeal Beast's lair",
+    "entrance": null,
+    "note": "Cave in the Wilderness or games necklace teleport (Corporeal Beast)"
+  },
+  "10032": {
+    "name": "Cosmic altar",
+    "entrance": [
+      3201,
+      3169
+    ],
+    "note": "In Zanaris (via the Lumbridge Swamp shed)"
+  },
+  "10033": {
+    "name": "Cosmic entity's plane",
+    "entrance": null,
+    "note": "Fairytale II dream"
+  },
+  "10034": {
+    "name": "Courtroom",
+    "entrance": null,
+    "note": "Quest cutscene (King's Ransom)"
+  },
+  "10036": {
+    "name": "Crash Site Cavern",
+    "entrance": [
+      2433,
+      3513
+    ],
+    "note": "Crash Site Cavern, north-west of the Gnome Stronghold (Monkey Madness II)"
+  },
+  "10037": {
+    "name": "Creature Creation",
+    "entrance": [
+      2648,
+      3212
+    ],
+    "note": "Basement of the Tower of Life, south of East Ardougne"
+  },
+  "10039": {
+    "name": "Death altar",
+    "entrance": null,
+    "note": "Death altar, Temple of Light (Mourning's End Part II)"
+  },
+  "10044": {
+    "name": "Dondakan's mine (during quest)",
+    "entrance": null,
+    "note": "Quest instance (Between a Rock...)"
+  },
+  "10045": {
+    "name": "Dorgesh-Kaan South Dungeon",
+    "entrance": [
+      3208,
+      3216
+    ],
+    "note": "Via the Lumbridge Castle cellar tunnel"
+  },
+  "10046": {
+    "name": "Dragon Slayer boats",
+    "entrance": null,
+    "note": "Quest cutscene (Dragon Slayer)"
+  },
+  "10047": {
+    "name": "Dream World - challenges",
+    "entrance": null,
+    "note": "Dream World (Lunar Diplomacy)"
+  },
+  "10048": {
+    "name": "Dream World - Dream Mentor",
+    "entrance": null,
+    "note": "Dream World (Dream Mentor)"
+  },
+  "10049": {
+    "name": "Dream World - Me",
+    "entrance": null,
+    "note": "Dream World (Lunar Diplomacy)"
+  },
+  "10050": {
+    "name": "Drill Demon",
+    "entrance": null,
+    "note": "Random event"
+  },
+  "10052": {
+    "name": "Eagles' Peak Dungeon",
+    "entrance": [
+      2328,
+      3496
+    ],
+    "note": "Eagles' Peak, west of the Piscatoris Fishing Colony"
+  },
+  "10055": {
+    "name": "Enchanted Valley",
+    "entrance": null,
+    "note": "Fairy ring code B-K-Q (Enchanted Valley)"
+  },
+  "10056": {
+    "name": "Enlightened Journey crash areas",
+    "entrance": null,
+    "note": "Balloon transport cutscene (Enlightened Journey)"
+  },
+  "10057": {
+    "name": "Evil Bob's Island",
+    "entrance": null,
+    "note": "Random event"
+  },
+  "10058": {
+    "name": "Evil Chicken's Lair",
+    "entrance": null,
+    "note": "In Zanaris - use a raw chicken at the Chicken Shrine"
+  },
+  "10059": {
+    "name": "Evil Twin",
+    "entrance": null,
+    "note": "Random event"
+  },
+  "10060": {
+    "name": "Eyes of Glouphrie war cutscene",
+    "entrance": null,
+    "note": "Quest cutscene (The Eyes of Glouphrie)"
+  },
+  "10061": {
+    "name": "Fairy Resistance Hideout",
+    "entrance": null,
+    "note": "Fairytale II - fairy ring travel"
+  },
+  "10062": {
+    "name": "Fisher Realm (diseased)",
+    "entrance": null,
+    "note": "Fisher Realm - magic whistle (Holy Grail)"
+  },
+  "10063": {
+    "name": "Fisher Realm (healthy)",
+    "entrance": null,
+    "note": "Fisher Realm - magic whistle (Holy Grail)"
+  },
+  "10064": {
+    "name": "Fishing Trawler",
+    "entrance": [
+      2675,
+      3163
+    ],
+    "note": "Board the Fishing Trawler at Port Khazard"
+  },
+  "10065": {
+    "name": "Fishing Trawler",
+    "entrance": [
+      2675,
+      3163
+    ],
+    "note": "Board the Fishing Trawler at Port Khazard"
+  },
+  "10068": {
+    "name": "Fragment of Seren fight",
+    "entrance": null,
+    "note": "Quest finale (Song of the Elves)"
+  },
+  "10069": {
+    "name": "Freaky Forester",
+    "entrance": null,
+    "note": "Random event"
+  },
+  "10073": {
+    "name": "Gorak Plane",
+    "entrance": null,
+    "note": "Fairy ring code D-I-R (Gorak Plane)"
+  },
+  "10074": {
+    "name": "H.A.M. Store room",
+    "entrance": [
+      3166,
+      3252
+    ],
+    "note": "H.A.M. hideout trapdoor, west of Lumbridge"
+  },
+  "10075": {
+    "name": "Hallowed Sepulchre - Level 1",
+    "entrance": [
+      3612,
+      3362
+    ],
+    "note": "Hallowed Sepulchre, entered in Darkmeyer"
+  },
+  "10076": {
+    "name": "Hallowed Sepulchre starting area",
+    "entrance": [
+      3612,
+      3362
+    ],
+    "note": "Hallowed Sepulchre, entered in Darkmeyer"
+  },
+  "10078": {
+    "name": "Isafdar (Song of the Elves)",
+    "entrance": null,
+    "note": "Quest instance (Song of the Elves)"
+  },
+  "10080": {
+    "name": "Jaldraocht Pyramid - Level 2",
+    "entrance": [
+      3233,
+      2897
+    ],
+    "note": "Jaldraocht Pyramid, western desert (Desert Treasure)"
+  },
+  "10087": {
+    "name": "Keep Le Faye (instance)",
+    "entrance": null,
+    "note": "Quest instance (King's Ransom)"
+  },
+  "10088": {
+    "name": "Keldagrim Rat Pits",
+    "entrance": [
+      2730,
+      3713
+    ],
+    "note": "Rat pit inside Keldagrim (Ratcatchers)"
+  },
+  "10089": {
+    "name": "Killerwatt Plane",
+    "entrance": [
+      3108,
+      3353
+    ],
+    "note": "Portal on the top floor of Draynor Manor (Ernest the Chicken area)"
+  },
+  "10090": {
+    "name": "King's Ransom dungeon",
+    "entrance": null,
+    "note": "Quest instance (King's Ransom)"
+  },
+  "10091": {
+    "name": "Kiss the frog",
+    "entrance": null,
+    "note": "Random event"
+  },
+  "10098": {
+    "name": "Lighthouse Dungeon (cutscene)",
+    "entrance": [
+      2509,
+      3636
+    ],
+    "note": "The Lighthouse, north of Barbarian Outpost (Horror from the Deep)"
+  },
+  "10099": {
+    "name": "Lithkren Vault",
+    "entrance": [
+      3540,
+      3986
+    ],
+    "note": "Lithkren, island north-west of Morytania (Dragon Slayer II)"
+  },
+  "10103": {
+    "name": "Lumbridge Castle (Recipe for Disaster)",
+    "entrance": [
+      3222,
+      3218
+    ],
+    "note": "Lumbridge Castle (Recipe for Disaster)"
+  },
+  "10107": {
+    "name": "Meiyerditch Mine",
+    "entrance": [
+      3619,
+      3313
+    ],
+    "note": "Meiyerditch, Morytania"
+  },
+  "10108": {
+    "name": "Mime",
+    "entrance": null,
+    "note": "Random event"
+  },
+  "10111": {
+    "name": "Monkey Madness hangar (post-quest)",
+    "entrance": null,
+    "note": "Underground hangar, Gnome Stronghold (Monkey Madness)"
+  },
+  "10113": {
+    "name": "Mourner Tunnels",
+    "entrance": [
+      2551,
+      3316
+    ],
+    "note": "Mourner HQ basement, West Ardougne"
+  },
+  "10114": {
+    "name": "Mouse hole",
+    "entrance": null,
+    "note": "Shrunken mouse hole (Grim Tales)"
+  },
+  "10115": {
+    "name": "My Arm's Big Adventure boat cutscene",
+    "entrance": null,
+    "note": "Quest cutscene (My Arm's Big Adventure)"
+  },
+  "10119": {
+    "name": "Nature altar",
+    "entrance": [
+      2869,
+      3019
+    ],
+    "note": "Nature altar ruins, north-east Karamja"
+  },
+  "10121": {
+    "name": "North-east Karamja cutscene",
+    "entrance": null,
+    "note": "Quest cutscene"
+  },
+  "10127": {
+    "name": "Prison Pete",
+    "entrance": null,
+    "note": "Random event"
+  },
+  "10128": {
+    "name": "Puro-Puro",
+    "entrance": null,
+    "note": "Crop circle in a wheat field, or the centre of Zanaris (Puro-Puro)"
+  },
+  "10129": {
+    "name": "Pyramid Plunder",
+    "entrance": [
+      3288,
+      2787
+    ],
+    "note": "Jalsavrah pyramid in Sophanem (Pyramid Plunder)"
+  },
+  "10131": {
+    "name": "Quiz Master",
+    "entrance": null,
+    "note": "Random event"
+  },
+  "10134": {
+    "name": "Ratcatchers Mansion",
+    "entrance": null,
+    "note": "Via Jimmy Dazzler, East Ardougne (Ratcatchers)"
+  },
+  "10135": {
+    "name": "Recipe for Disaster Ape Atoll Dungeon",
+    "entrance": null,
+    "note": "Quest instance (Recipe for Disaster: Awowogei)"
+  },
+  "10136": {
+    "name": "Recruitment Drive",
+    "entrance": null,
+    "note": "Quest instance (Recruitment Drive)"
+  },
+  "10137": {
+    "name": "Rogues' Den",
+    "entrance": [
+      2905,
+      3537
+    ],
+    "note": "Under The Toad and Chicken inn, Burthorpe"
+  },
+  "10138": {
+    "name": "Saba's cave",
+    "entrance": [
+      2858,
+      3577
+    ],
+    "note": "Saba's cave near Death Plateau, Troll Country"
+  },
+  "10139": {
+    "name": "Shadow Dungeon",
+    "entrance": [
+      2547,
+      3421
+    ],
+    "note": "Ladder west of the Fishing Guild - needs the ring of visibility (Desert Treasure)"
+  },
+  "10142": {
+    "name": "Sophanem bank",
+    "entrance": [
+      3304,
+      2788
+    ],
+    "note": "Sophanem bank (Contact!)"
+  },
+  "10144": {
+    "name": "Sorceress's Garden",
+    "entrance": [
+      3321,
+      3140
+    ],
+    "note": "Talk to the Apprentice in Al Kharid (Sorceress's Garden)"
+  },
+  "10145": {
+    "name": "Surprise Exam",
+    "entrance": null,
+    "note": "Random event"
+  },
+  "10149": {
+    "name": "Temple Trekking",
+    "entrance": [
+      3403,
+      3485
+    ],
+    "note": "Start Temple Trekking at Paterdomus or Burgh de Rott"
+  },
+  "10150": {
+    "name": "Thammaron's throne room",
+    "entrance": null,
+    "note": "Quest area"
+  },
+  "10151": {
+    "name": "The Grand Tree - Monkey Madness II",
+    "entrance": null,
+    "note": "Quest instance (Monkey Madness II)"
+  },
+  "10153": {
+    "name": "Train station",
+    "entrance": [
+      2730,
+      3713
+    ],
+    "note": "Keldagrim train station (Another Slice of H.A.M.)"
+  },
+  "10158": {
+    "name": "Tunnel of Chaos",
+    "entrance": null,
+    "note": "Tunnel of Chaos, east of Varrock (What Lies Below)"
+  },
+  "10162": {
+    "name": "Underground Pass - bottom level (Song of the Elves instance)",
+    "entrance": [
+      2434,
+      3315
+    ],
+    "note": "Underground Pass entrance, west of West Ardougne"
+  },
+  "10164": {
+    "name": "Underground Pass - Iban's Temple (post-quest)",
+    "entrance": [
+      2434,
+      3315
+    ],
+    "note": "Underground Pass entrance, west of West Ardougne"
+  },
+  "10165": {
+    "name": "Underground Pass - platforms",
+    "entrance": [
+      2434,
+      3315
+    ],
+    "note": "Underground Pass entrance, west of West Ardougne"
+  },
+  "10170": {
+    "name": "Varrock Museum basement (higher)",
+    "entrance": [
+      3254,
+      3452
+    ],
+    "note": "Varrock Museum basement"
+  },
+  "10172": {
+    "name": "Varrock Rat Pits",
+    "entrance": [
+      3264,
+      3390
+    ],
+    "note": "Rat pit trapdoor in south-east Varrock (Ratcatchers)"
+  },
+  "10173": {
+    "name": "Viyeldi caves (lower level)",
+    "entrance": [
+      2772,
+      2943
+    ],
+    "note": "Viyeldi caves, Kharazi Jungle (Legends' Quest)"
+  },
+  "10178": {
+    "name": "Wilderness Wars",
+    "entrance": null,
+    "note": "Wilderness minigame area"
+  },
+  "10179": {
+    "name": "Witchaven Dungeon",
+    "entrance": [
+      2696,
+      3283
+    ],
+    "note": "Dungeon entrance in Witchaven, east of East Ardougne"
+  },
+  "10180": {
+    "name": "Wrath altar",
+    "entrance": [
+      2458,
+      2847
+    ],
+    "note": "Wrath altar, basement of the Myths' Guild"
+  }
+}

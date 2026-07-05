@@ -18,8 +18,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
+import net.runelite.api.ScriptID;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ScriptCallbackEvent;
+import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.gameval.DBTableID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -29,11 +32,14 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.ui.overlay.OverlayManager;
+import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
+import net.runelite.client.ui.overlay.worldmap.WorldMapPointManager;
 import net.runelite.client.util.ImageUtil;
 
 @PluginDescriptor(
     name = "Music Cape Helper",
-    description = "Helps you complete the music log and unlock the music cape. Shows all music tracks by area, their unlock hints, and which are still missing.",
+    description = "Helps you complete the music log and unlock the music cape. Shows all music tracks, their areas and unlock hints, and guides you to each track's unlock spot.",
     tags = {"music", "cape", "track", "tracker", "completionist", "log", "unlock", "hint", "area", "collection", "progress", "wiki"}
 )
 public class MusicCapeHelperPlugin extends Plugin
@@ -61,8 +67,20 @@ public class MusicCapeHelperPlugin extends Plugin
     @Inject
     private OkHttpClient okHttpClient;
 
+    @Inject
+    private WorldMapPointManager worldMapPointManager;
+
+    @Inject
+    private InfoBoxManager infoBoxManager;
+
+    @Inject
+    private OverlayManager overlayManager;
+
     private MusicCapeHelperConfig config;
     private MusicCapeHelperPanel panel;
+    private MapNavigator mapNavigator;
+    private MusicSceneOverlay sceneOverlay;
+    private MusicMapAreaOverlay mapAreaOverlay;
     private NavigationButton navButton;
     private Map<Integer, Boolean> unlockedState = new HashMap<>();
 
@@ -73,7 +91,12 @@ public class MusicCapeHelperPlugin extends Plugin
     {
         config = getConfig(configManager);
         loadUnlockedState();
-        panel = new MusicCapeHelperPanel(this, config, configManager, okHttpClient, client, clientThread);
+        mapNavigator = new MapNavigator(this, client, clientThread, worldMapPointManager, infoBoxManager, config, gson);
+        sceneOverlay = new MusicSceneOverlay(client, config, mapNavigator);
+        mapAreaOverlay = new MusicMapAreaOverlay(client, config, mapNavigator);
+        overlayManager.add(sceneOverlay);
+        overlayManager.add(mapAreaOverlay);
+        panel = new MusicCapeHelperPanel(this, config, configManager, okHttpClient, client, clientThread, mapNavigator);
         navButton = NavigationButton.builder()
             .tooltip("Music Cape Helper")
             .icon(ImageUtil.loadImageResource(getClass(), "icon.png"))
@@ -88,9 +111,30 @@ public class MusicCapeHelperPlugin extends Plugin
     @Override
     protected void shutDown()
     {
+        if (sceneOverlay != null)
+        {
+            overlayManager.remove(sceneOverlay);
+        }
+        if (mapAreaOverlay != null)
+        {
+            overlayManager.remove(mapAreaOverlay);
+        }
+        if (mapNavigator != null)
+        {
+            mapNavigator.clear();
+        }
         if (navButton != null)
         {
             clientToolbar.removeNavigation(navButton);
+        }
+    }
+
+    @Subscribe
+    public void onGameTick(GameTick event)
+    {
+        if (mapNavigator != null)
+        {
+            mapNavigator.onGameTick(config.showHintArrow());
         }
     }
 
@@ -138,6 +182,15 @@ public class MusicCapeHelperPlugin extends Plugin
         {
             saveUnlockedState();
             panel.rebuild();
+        }
+    }
+
+    @Subscribe
+    public void onScriptPostFired(ScriptPostFired event)
+    {
+        if (event.getScriptId() == ScriptID.WORLDMAP_LOADMAP)
+        {
+            mapNavigator.onMapLoaded();
         }
     }
 
