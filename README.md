@@ -76,7 +76,7 @@ python3 scripts/gen_map_areas.py            # 3. rebuild the map area index (pro
 python3 scripts/gen_map_entrances.py        # 4. re-assign zones + regenerate entrances (needs 1-3)
 ```
 
-The scrapers are polite (0.35 s between requests) — please keep them that way. Rebuild with `./gradlew jar` and side-load the jar to verify before opening a PR.
+The scrapers are polite (0.35 s between requests) — please keep them that way. To fix a single track without a full run, pass its wiki page title: `python3 scripts/scrape_track_coords.py "7th Realm"` (merges into the existing file; re-run `gen_map_entrances.py` afterwards). Rebuild with `./gradlew jar` and side-load the jar to verify before opening a PR.
 
 ### Manual fixes
 
