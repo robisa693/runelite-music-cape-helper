@@ -289,14 +289,19 @@ def main():
                         # Synthetic place-entrance id from a previous run;
                         # reapplied below, nothing to validate against.
                         valid = True
-                    elif current in bounds:
-                        b = bounds[current]
-                        valid = b[0][0] <= c[0] <= b[1][0] and b[0][1] <= c[1] <= b[1][1]
-                    elif current in table_centers:
-                        tx, ty = table_centers[current]
-                        valid = ((c[0] - tx) ** 2 + (c[1] - ty) ** 2) ** 0.5 <= 384
                     else:
+                        # A map can live in two coordinate spaces: its wiki
+                        # pocket (near the table center) and its in-game area
+                        # (the bounds). Either confirms the assignment -
+                        # Fear and Loathing's pocket feature carries Tolna's
+                        # Rift while the in-game area sits in the dungeon band.
                         valid = False
+                        if current in bounds:
+                            b = bounds[current]
+                            valid = b[0][0] <= c[0] <= b[1][0] and b[0][1] <= c[1] <= b[1][1]
+                        if not valid and current in table_centers:
+                            tx, ty = table_centers[current]
+                            valid = ((c[0] - tx) ** 2 + (c[1] - ty) ** 2) ** 0.5 <= 384
                 if current is not None and not valid:
                     replacement = containing_map(bounds, c[0], c[1])
                     dropped.append((track, current, replacement))

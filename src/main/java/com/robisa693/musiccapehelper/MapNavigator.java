@@ -202,6 +202,13 @@ class MapNavigator
                 {
                     continue;
                 }
+                // Owning the exact square outranks any number of neighbouring
+                // squares - a one-square area (Tolna's Rift) must beat a large
+                // area that merely surrounds the spot (Misthalin Underground).
+                if (containsSquare(area.squares, cx, cy))
+                {
+                    score += 1000;
+                }
                 size = area.squares.size() * 64L * 64L;
             }
             else
@@ -337,6 +344,18 @@ class MapNavigator
         long ty = to.getY() >= UNDERGROUND_Y ? to.getY() - UNDERGROUND_Y : to.getY();
         long dy = ty - fy;
         return dx * dx + dy * dy;
+    }
+
+    private static boolean containsSquare(List<List<Number>> squares, int cx, int cy)
+    {
+        for (List<Number> square : squares)
+        {
+            if (square.size() >= 2 && square.get(0).intValue() == cx && square.get(1).intValue() == cy)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** How many of the area's squares fall in the 3x3 neighbourhood of (cx, cy). */

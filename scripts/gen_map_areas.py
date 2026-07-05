@@ -51,7 +51,6 @@ USER_AGENT = "music-cape-helper data generator"
 # extents are unknown.
 CURATED_BOUNDS = {
     8: [[2839, 6295], [3031, 6487]],    # Ghorrock Prison (id reused, see below)
-    21: [[3048, 5224], [3160, 5336]],   # Tolna's Rift (moved to the mid-band; box kept off the Tunnel of Chaos pocket at (3168,5216))
     29: [[3136, 5952], [3392, 6208]],   # Prifddinas (does NOT render the Zalcano pocket at x~3040, verified in-game)
     34: [[3136, 12352], [3392, 12608]], # Prifddinas Underground
     35: [[2495, 6015], [2751, 6271]],   # Prifddinas Grand Library
@@ -61,7 +60,7 @@ CURATED_BOUNDS = {
     39: [[2880, 5696], [3032, 5832]],   # Ruins of Camdozaal
     40: [[2944, 4736], [3136, 4928]],   # The Abyss
     41: [[2560, 6272], [2752, 6464]],   # Lassar Undercity
-    42: [[3036, 9296], [3556, 9792]],   # Kharidian Desert Underground (east edge stops before the Temple of the Eye instance)
+    42: [[3036, 9296], [3556, 9640]],   # Kharidian Desert Underground (stops before the Temple of the Eye instance and Morytania's Barrows strip)
     43: [[1152, 9280], [1920, 9728]],   # Varlamore Underground (Cam Torum/Neypotzli overlap it; smaller wins)
     44: [[1344, 9472], [1536, 9664]],   # Cam Torum
     45: [[1344, 9600], [1536, 9728]],   # Neypotzli (below Cam Torum; keep the city center out of its box)
@@ -71,9 +70,14 @@ CURATED_BOUNDS = {
 # Stale basemaps entries to discard: id 8 was "Kalphite Hives" in 2019 (now
 # merged into 42 Kharidian Desert Underground) and has been reused in-game
 # for Ghorrock Prison, so neither its old bounds nor its old tiles may carry
-# the new name. Id 21 Tolna's Rift was moved from the dungeon band into the
-# mid-band - its old bounds and tiles sit inside Misthalin Underground.
-SKIP_STALE_IDS = {8, 21}
+# the new name.
+SKIP_STALE_IDS = {8}
+
+# Areas whose current wiki-table center is the wiki map pocket rather than
+# the in-game position; the snapshot bounds are still correct in-game
+# (verified: Tolna's Rift appears in the map list at its old dungeon-band
+# spot), so the center-inside-bounds staleness check must not reject them.
+VALIDATION_EXEMPT = {21}
 
 # The in-game map list was renamed for these since the 2019 snapshot; the
 # current wiki table already has the new names, listed here just for
@@ -189,7 +193,7 @@ def main():
     stale = []
     for a in areas:
         c = centers.get(a["id"])
-        if not c:
+        if not c or a["id"] in VALIDATION_EXEMPT:
             continue
         b = a["bounds"]
         if not (b[0][0] <= c[0] <= b[1][0] and b[0][1] <= c[1] <= b[1][1]):

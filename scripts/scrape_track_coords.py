@@ -258,9 +258,12 @@ def build_locations_from_inline_maps(inline_maps, existing_locations):
     new_locations = []
     multi_group_seen = set()
     for im in inline_maps:
-        # Historical ("hist") and absent ("no") features mark removed or
-        # never-present content - guiding players to them marks empty space.
-        if im["bucket"] in ("hist", "no"):
+        # Historical features mark removed content - guiding players to them
+        # marks empty space. bucket=hist is always historical; bucket=no also
+        # appears on perfectly current features (A Festive Party's Party Room),
+        # so it only counts as historical when the feature's group says so.
+        group = (im.get("group") or "").lower()
+        if im["bucket"] == "hist" or "hist" in group or "old" in group:
             continue
         coords = expand_shape_coords(im)
         c = centroid(coords)
