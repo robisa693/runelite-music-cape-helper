@@ -23,7 +23,7 @@ A RuneLite plugin that helps you complete the music log and unlock the **music c
 - **✕ button** to clear the marker, highlights and hint arrow
 
 ## Why?
-
+ 
 The in-game music player already shows locked tracks, but it's tedious to scroll through every area and read each tooltip one by one. This plugin lists all unlock hints at once, and then actually takes you there: pick a missing track, jump the world map to its unlock area, and follow the on-the-ground highlight for the final steps — like the clue scroll helper, but for music tracks.
 
 ## Usage
