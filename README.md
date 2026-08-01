@@ -91,3 +91,4 @@ All human-maintained data lives in small curated tables at the top of the two `g
 - Coordinates are world tiles; you can read them off the wiki map URLs or in game with RuneLite's Developer Tools. Surface y is below 4160; dungeons in the classic band are exactly 6400 above the ground they sit under; the 4160–6400 band holds self-contained zones and instances.
 - This project uses co-authored commits to recognize collaborative contributions.
 - Pair Extraordinaire badge test with ironbtwarchbtw.
+- Testing achievement unlock.
