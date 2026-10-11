@@ -13,6 +13,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -65,6 +66,7 @@ class MusicCapeHelperPanel extends PluginPanel
     private JLabel mapToggle;
     private JPanel trackListPanel;
     private String filterText = "";
+    private final AtomicBoolean rebuildPending = new AtomicBoolean();
 
     MusicCapeHelperPanel(MusicCapeHelperPlugin plugin, MusicCapeHelperConfig config, ConfigManager configManager, OkHttpClient okHttpClient, Client client, ClientThread clientThread, MapNavigator mapNavigator)
     {
@@ -230,12 +232,23 @@ class MusicCapeHelperPanel extends PluginPanel
         rebuild();
     }
 
+    /**
+     * Safe to call from any thread and as often as you like. The music list fires a
+     * per-track callback hundreds of times in a row, so until the pending pass has
+     * gathered its data, further calls collapse into it instead of queueing another.
+     */
     void rebuild()
     {
+        if (!rebuildPending.compareAndSet(false, true))
+        {
+            return;
+        }
+
         // Gather game state on the client thread, then apply all Swing
         // mutations on the EDT - mixing the two freezes the client.
         clientThread.invokeLater(() ->
         {
+            rebuildPending.set(false);
             List<TrackData> tracks = plugin.getVisibleTracks();
             Map<Integer, Boolean> unlockedState = new java.util.HashMap<>(plugin.getUnlockedState());
             long total = plugin.getTotalTracks();
