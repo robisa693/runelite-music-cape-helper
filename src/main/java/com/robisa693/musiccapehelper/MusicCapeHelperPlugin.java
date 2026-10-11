@@ -8,9 +8,9 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import okhttp3.OkHttpClient;
@@ -83,9 +83,16 @@ public class MusicCapeHelperPlugin extends Plugin
     private MusicMapAreaOverlay mapAreaOverlay;
     private MusicMapListHighlightOverlay mapListHighlightOverlay;
     private NavigationButton navButton;
-    private Map<Integer, Boolean> unlockedState = new HashMap<>();
+    private Map<Integer, Boolean> unlockedState = new ConcurrentHashMap<>();
 
-    private List<TrackData> allTracks = Collections.emptyList();
+    private volatile List<TrackData> allTracks = Collections.emptyList();
+
+    /**
+     * The "musicTrackFilter" callback fires once per track every time the music list is
+     * rendered, so it must never do real work itself. It only flags that something changed;
+     * the save + panel rebuild are flushed at most once per game tick.
+     */
+    private boolean stateDirty;
 
     @Override
     protected void startUp()
@@ -134,6 +141,7 @@ public class MusicCapeHelperPlugin extends Plugin
         {
             clientToolbar.removeNavigation(navButton);
         }
+        stateDirty = false;
     }
 
     @Subscribe
@@ -142,6 +150,13 @@ public class MusicCapeHelperPlugin extends Plugin
         if (mapNavigator != null)
         {
             mapNavigator.onGameTick(config.showHintArrow());
+        }
+
+        if (stateDirty)
+        {
+            stateDirty = false;
+            saveUnlockedState();
+            panel.rebuild();
         }
     }
 
@@ -163,7 +178,9 @@ public class MusicCapeHelperPlugin extends Plugin
     @Subscribe
     public void onConfigChanged(ConfigChanged event)
     {
-        if (event.getGroup().equals(CONFIG_GROUP))
+        // Our own unlocked-state write lands in this group too; rebuilding on it would
+        // turn every save into another full panel rebuild.
+        if (event.getGroup().equals(CONFIG_GROUP) && !KEY_UNLOCKED_MAP.equals(event.getKey()))
         {
             panel.rebuild();
         }
@@ -179,6 +196,10 @@ public class MusicCapeHelperPlugin extends Plugin
 
         int[] stack = client.getIntStack();
         int stackSize = client.getIntStackSize();
+        if (stackSize < 2)
+        {
+            return;
+        }
 
         int unlocked = stack[stackSize - 1];
         int dbrow = stack[stackSize - 2];
@@ -187,8 +208,7 @@ public class MusicCapeHelperPlugin extends Plugin
         Boolean prev = unlockedState.put(dbrow, isUnlocked);
         if (prev == null || prev != isUnlocked)
         {
-            saveUnlockedState();
-            panel.rebuild();
+            stateDirty = true;
         }
     }
 
@@ -311,7 +331,15 @@ public class MusicCapeHelperPlugin extends Plugin
                 Map<Integer, Boolean> loaded = gson.fromJson(json, MAP_TYPE);
                 if (loaded != null)
                 {
-                    unlockedState = loaded;
+                    Map<Integer, Boolean> state = new ConcurrentHashMap<>();
+                    loaded.forEach((k, v) ->
+                    {
+                        if (k != null && v != null)
+                        {
+                            state.put(k, v);
+                        }
+                    });
+                    unlockedState = state;
                 }
             }
             catch (Exception e)
