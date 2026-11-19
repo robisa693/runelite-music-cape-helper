@@ -38,6 +38,17 @@ public interface MusicCapeHelperConfig extends Config
         return ClickMode.WIKI;
     }
 
+    @ConfigItem(
+        keyName = "hideHolidayTracks",
+        name = "Hide holiday tracks",
+        description = "Exclude holiday event tracks from the track list and progress counts",
+        hidden = true
+    )
+    default boolean hideHolidayTracks()
+    {
+        return false;
+    }
+
     @ConfigSection(
         name = "In-game Guidance",
         description = "How the marked track location is shown in the game world",

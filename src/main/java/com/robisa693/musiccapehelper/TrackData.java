@@ -7,13 +7,15 @@ class TrackData
     final String unlockHint;
     final int areaId;
     final boolean hidden;
+    final boolean holiday;
 
-    TrackData(int dbRow, String displayName, String unlockHint, int areaId, boolean hidden)
+    TrackData(int dbRow, String displayName, String unlockHint, int areaId, boolean hidden, boolean holiday)
     {
         this.dbRow = dbRow;
         this.displayName = displayName;
         this.unlockHint = unlockHint;
         this.areaId = areaId;
         this.hidden = hidden;
+        this.holiday = holiday;
     }
 }
