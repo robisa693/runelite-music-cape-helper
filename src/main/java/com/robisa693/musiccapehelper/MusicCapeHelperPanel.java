@@ -62,6 +62,7 @@ class MusicCapeHelperPanel extends PluginPanel
     private JLabel summaryLabel;
     private JTextField searchField;
     private JCheckBox missingOnlyCheck;
+    private JCheckBox hideHolidayTracksCheck;
     private JLabel wikiToggle;
     private JLabel mapToggle;
     private JPanel trackListPanel;
@@ -119,6 +120,16 @@ class MusicCapeHelperPanel extends PluginPanel
         });
         missingOnlyCheck.setSelected(config.showMissingOnly());
         add(missingOnlyCheck);
+
+        hideHolidayTracksCheck = new JCheckBox("Hide holiday tracks", config.hideHolidayTracks());
+        hideHolidayTracksCheck.setAlignmentX(Component.LEFT_ALIGNMENT);
+        hideHolidayTracksCheck.setToolTipText("Exclude holiday event tracks from the track list and progress counts");
+        hideHolidayTracksCheck.addActionListener(e ->
+        {
+            configManager.setConfiguration("musiccapehelper", "hideHolidayTracks", hideHolidayTracksCheck.isSelected());
+            rebuild();
+        });
+        add(hideHolidayTracksCheck);
         add(Box.createRigidArea(new Dimension(0, 8)));
 
         add(createToggleBar());
@@ -259,6 +270,7 @@ class MusicCapeHelperPanel extends PluginPanel
 
     private void rebuildUI(List<TrackData> tracks, Map<Integer, Boolean> unlockedState, long total, long unlocked)
     {
+        hideHolidayTracksCheck.setSelected(config.hideHolidayTracks());
         clickMode = config.clickMode();
         updateToggleColors();
 

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
@@ -246,8 +247,9 @@ public class MusicCapeHelperPlugin extends Plugin
             String unlockHint = readDBString(dbrow, DBTableID.Music.COL_UNLOCKHINT);
             int areaId = readDBInt(dbrow, DBTableID.Music.COL_AREA);
             boolean hidden = readDBBoolean(dbrow, DBTableID.Music.COL_HIDDEN);
+            boolean holiday = readDBInt(dbrow, DBTableID.Music.COL_HOLIDAY) > 0;
 
-            tracks.add(new TrackData(dbrow, displayName, unlockHint != null ? unlockHint : "", areaId, hidden));
+            tracks.add(new TrackData(dbrow, displayName, unlockHint != null ? unlockHint : "", areaId, hidden, holiday));
         }
 
         tracks.sort(Comparator.comparing(t -> t.displayName));
@@ -286,10 +288,16 @@ public class MusicCapeHelperPlugin extends Plugin
         return false;
     }
 
+    private Stream<TrackData> getEligibleTracks()
+    {
+        boolean hideHolidayTracks = config.hideHolidayTracks();
+        return allTracks.stream()
+            .filter(t -> !t.hidden && (!hideHolidayTracks || !t.holiday));
+    }
+
     public List<TrackData> getVisibleTracks()
     {
-        return allTracks.stream()
-            .filter(t -> !t.hidden)
+        return getEligibleTracks()
             .filter(t -> {
                 if (config.showMissingOnly())
                 {
@@ -308,12 +316,12 @@ public class MusicCapeHelperPlugin extends Plugin
 
     public long getTotalTracks()
     {
-        return allTracks.stream().filter(t -> !t.hidden).count();
+        return getEligibleTracks().count();
     }
 
     public long getUnlockedCount()
     {
-        return allTracks.stream().filter(t -> !t.hidden)
+        return getEligibleTracks()
             .filter(t -> {
                 Boolean u = unlockedState.get(t.dbRow);
                 return u != null && u;
